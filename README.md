@@ -51,6 +51,16 @@ mvn install
 
 4. Make everything secure by using https rather than http so that noVNC works correctly.
 
+5. Modify `lang.json` by adding a `DAAAS` JSON where you specify alternative names for associated placeholders. For example:
+
+```
+"DAAAS": {
+        "MY_MACHINES": "Analysis Environments",
+        "CREATE_NEW_MACHINE": "Create Analysis Environments",
+        "MACHINE_NOT_AVAILABLE": "No more analysis environments of this type are available - please try again later.",
+        "CREATING_MACHINE": "Please wait while your analysis environment gets created."
+    }
+```
 
 
 
