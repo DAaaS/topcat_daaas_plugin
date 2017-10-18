@@ -72,4 +72,7 @@ public class Database {
         em.flush();
     }
 
+    public void detach(Object entity) {
+        em.detach(entity); }
+
 }

@@ -62,6 +62,7 @@ public class UserResource {
                 for (MachineUser mu : machine.getMachineUsers()) {
                     // strip out the websockify tokens for other users associated to this machine
                     if (!mu.getUserName().equals(username)) {
+                        database.detach(mu);
                         mu.setWebsockifyToken("");
                     }
                 }
