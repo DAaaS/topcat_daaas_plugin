@@ -16,6 +16,6 @@
   ],
   "dependencies": {
     "jquery": "1.12.4",
-    "jquery-no-vnc": "^0.3.0"
+    "jquery-no-vnc": "https://github.com/DAaaS/jquery-no-vnc.git#0.3.1"
   }
 }
