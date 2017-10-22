@@ -1,165 +1,166 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<style>
-			html, body, .clip {
-				top: 0px;
-				left: 0px;
-				margin: 0px;
-				padding: 0px;
-				height: 100%;
-				width: 100%;
-				box-sizing: border-box;
-				overflow: hidden;
-				position: absolute;
-				background: #000;
-			}
+    <head>
+        <style>
+            html, body, .clip {
+                top: 0px;
+                left: 0px;
+                margin: 0px;
+                padding: 0px;
+                height: 100%;
+                width: 100%;
+                box-sizing: border-box;
+                overflow: hidden;
+                position: absolute;
+                background: #FFFFFF;
+            }
 
-			canvas {
-				position: absolute;
+            canvas {
+                position: absolute;
                 border: 0;
-			}
+            }
 
-			.full-screen-bar {
-				position: absolute;
-				height: 25px;
-				top: -75px;
-				width: 100%;
-				padding: 7px;
-				margin: 0px auto 0px auto;
-				z-index: 100;
-				text-align: center;
-				transition: all 0.5s;
-			}
+            .full-screen-bar {
+                position: absolute;
+                height: 25px;
+                top: -75px;
+                width: 100%;
+                padding: 7px;
+                margin: 0px auto 0px auto;
+                z-index: 100;
+                text-align: center;
+                transition: all 0.5s;
+            }
 
-			.full-screen-bar.show {
-				top: 0px;
-			}
+            .full-screen-bar.show {
+                top: 0px;
+            }
 
-			.full-screen-bar button {
-				height: 100%;
-				width: 33%;
-			}
+            .full-screen-bar button {
+                height: 100%;
+                width: 33%;
+            }
 
-			.exit-full-screen { display: none; }
-			.request-full-screen { display: initial; }
+            .exit-full-screen { display: none; }
+            .request-full-screen { display: initial; }
 
-			body.fullscreen .exit-full-screen { display: initial; }
-			body.fullscreen .request-full-screen { display: none; }
-			
-		</style>
-		<script src="/topcat_daaas_plugin/bower_components/jquery/dist/jquery.js"></script>
-		<script src="/topcat_daaas_plugin/bower_components/jquery-no-vnc/dist/jquery-no-vnc.js"></script>
-	</head>
+            body.fullscreen .exit-full-screen { display: initial; }
+            body.fullscreen .request-full-screen { display: none; }
+            
+        </style>
+        <script src="/topcat_daaas_plugin/bower_components/jquery/dist/jquery.js"></script>
+        <script src="/topcat_daaas_plugin/bower_components/jquery-no-vnc/dist/jquery-no-vnc.js"></script>
+    </head>
 
-	<body>
-		<div class="full-screen-bar show">
-			<button class="request-full-screen">Full Screen</button>
-			<button class="exit-full-screen">Exit Full Screen</button>
-		</div>
-		<div class="clip">
-			<canvas></canvas>
-		</div>
+    <body>
+        <div class="full-screen-bar show">
+            <button class="request-full-screen">Full Screen</button>
+            <button class="exit-full-screen">Exit Full Screen</button>
+        </div>
+        <div class="clip">
+            <canvas></canvas>
+        </div>
 
-		<script>
-			(function(tc, _){
-				var params = {};
-				_.each(window.location.search.replace('?', '').split(/&/), function(pair){
-					pair = pair.split(/=/);
-					params[pair[0]] = decodeURIComponent(pair[1]); 
-				});
-				var canvas = $(document.body).find('canvas');
-				var noVnc =  $(canvas).noVnc();
-				var id = params.id;
-				var facilityName = params.facilityName;
-				var facility = tc.facility(facilityName);
-				var icat = facility.icat();
-				var user = facility.user();
-				var daaas = user.daaas();
-				var username = tc.icat(facilityName).session().username;
-				var icatUrl = facility.config().icatUrl;
-				var sessionId = icat.session().sessionId;
+        <script>
+            (function(tc, _){
+                var params = {};
+                _.each(window.location.search.replace('?', '').split(/&/), function(pair){
+                    pair = pair.split(/=/);
+                    params[pair[0]] = decodeURIComponent(pair[1]); 
+                });
+                var canvas = $(document.body).find('canvas');
+                var noVnc =  $(canvas).noVnc();
+                var id = params.id;
+                var facilityName = params.facilityName;
+                var facility = tc.facility(facilityName);
+                var icat = facility.icat();
+                var user = facility.user();
+                var daaas = user.daaas();
+                var username = tc.icat(facilityName).session().username;
+                var icatUrl = facility.config().icatUrl;
+                var sessionId = icat.session().sessionId;
 
 
-				daaas.machines().then(function(machines){
-					_.each(machines, function(machine){
-						if(machine.id == id){
-                			var port = 29876;
-                			var user = _.select(machine.users, function(user){ return user.userName == username})[0]
-                			var path = "websockify?token=" + _.select(machine.users, function(user){ return user.userName == username})[0].websockifyToken;
-                			noVnc.connect(machine.host, port, '', path);
-                			$(canvas).on('novnc:loaded', resize);
-                			$(window).on('resize', resize);
+                daaas.machines().then(function(machines){
+                    _.each(machines, function(machine){
+                        if(machine.id == id){
+                            var port = 29876;
+                            var user = _.select(machine.users, function(user){ return user.userName == username})[0]
+                            var path = "websockify?token=" + _.select(machine.users, function(user){ return user.userName == username})[0].websockifyToken;
+                            noVnc.connect(machine.host, port, '', path);
+                            $(canvas).on('novnc:loaded', resize);
+                            $(canvas).focus();
+                            $(window).on('resize', resize);
 
                             document.title = machine.host;
 
-                			var resizingCounter = 0;
-                			function resize(){
-                				console.log('resize');
-                				if(user.type == 'PRIMARY'){
-	                				if(resizingCounter == 0){
+                            var resizingCounter = 0;
+                            function resize(){
+                                console.log('resize');
+                                if(user.type == 'PRIMARY'){
+                                    if(resizingCounter == 0){
 
-	                					var host = window.location.host;
-	                					if(host == 'localhost:10080'){
-	                						host = 'localhost:8181';
-	                					}
-	                					var url = "https://" + host + "/topcat_daaas_plugin/api/user/machines/" + machine.id + "/resolution";
-	                
-	                					console.log(url, params);
+                                        var host = window.location.host;
+                                        if(host == 'localhost:10080'){
+                                            host = 'localhost:8181';
+                                        }
+                                        var url = "https://" + host + "/topcat_daaas_plugin/api/user/machines/" + machine.id + "/resolution";
+                    
+                                        console.log(url, params);
 
-	                					$.ajax({
-	                						url: url,
-	                						method: 'POST',
-	                						data: {
-		                						icatUrl: icatUrl,
-		                						sessionId: sessionId,
-		                						width: document.body.clientWidth,
-		                						height: document.body.clientHeight
-		                					},
-		                					headers: {
-		                						'Content-Type': 'application/x-www-form-urlencoded'
-		                					},
-		                					success: function(){
-		                						if(resizingCounter > 1){
-													resizingCounter = 0;
-													resize();
-												}
-												resizingCounter = 0;
-		                					}
-	                					})
+                                        $.ajax({
+                                            url: url,
+                                            method: 'POST',
+                                            data: {
+                                                icatUrl: icatUrl,
+                                                sessionId: sessionId,
+                                                width: document.body.clientWidth,
+                                                height: document.body.clientHeight
+                                            },
+                                            headers: {
+                                                'Content-Type': 'application/x-www-form-urlencoded'
+                                            },
+                                            success: function(){
+                                                if(resizingCounter > 1){
+                                                    resizingCounter = 0;
+                                                    resize();
+                                                }
+                                                resizingCounter = 0;
+                                            }
+                                        })
 
-										machine.setResolution(document.body.clientWidth, document.body.clientHeight).then(function(){
-											if(resizingCounter > 1){
-												resizingCounter = 0;
-												resize();
-											}
-											resizingCounter = 0;
-										});
-									}
-									resizingCounter++;
-								} else {
-									noVnc.resize(document.body.clientWidth, document.body.clientHeight);
-								}
-							}
-						}
-					});
-				});
+                                        machine.setResolution(document.body.clientWidth, document.body.clientHeight).then(function(){
+                                            if(resizingCounter > 1){
+                                                resizingCounter = 0;
+                                                resize();
+                                            }
+                                            resizingCounter = 0;
+                                        });
+                                    }
+                                    resizingCounter++;
+                                } else {
+                                    noVnc.resize(document.body.clientWidth, document.body.clientHeight);
+                                }
+                            }
+                        }
+                    });
+                });
 
-				var fullScreenBar = $('.full-screen-bar')
+                var fullScreenBar = $('.full-screen-bar')
 
-				function mousemove(e){
-					var width = $(document.body).width();
-					if(e.pageY < 16 && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
-						$(fullScreenBar).addClass('show');
-					} else if($(fullScreenBar).hasClass('show') && e.pageY > $(fullScreenBar).height() && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
-						$(fullScreenBar).removeClass('show');
-					}
-				}
+                function mousemove(e){
+                    var width = $(document.body).width();
+                    if(e.pageY < 16 && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
+                        $(fullScreenBar).addClass('show');
+                    } else if($(fullScreenBar).hasClass('show') && e.pageY > $(fullScreenBar).height() && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
+                        $(fullScreenBar).removeClass('show');
+                    }
+                }
 
-				$(canvas).on('mousemove', mousemove);
-				$(document.body).on('mousemove', mousemove);
+                $(canvas).on('mousemove', mousemove);
+                $(document.body).on('mousemove', mousemove);
 
-				$('.request-full-screen').on('click', function(){
+                $('.request-full-screen').on('click', function(){
                     var element = document.body;
                     if (element.requestFullscreen) {
                       element.requestFullscreen();
@@ -172,7 +173,7 @@
                     }
                 });
 
-				$('.exit-full-screen').on('click', function(){
+                $('.exit-full-screen').on('click', function(){
                     if (document.exitFullscreen) {
                       document.exitFullscreen();
                     } else if (document.mozCancelFullScreen) {
@@ -185,27 +186,27 @@
                 });
 
 
-				var isFullScreenMode = document.fullScreen || document.mozFullScreen || document.webkitIsFullScreen;
+                var isFullScreenMode = document.fullScreen || document.mozFullScreen || document.webkitIsFullScreen;
 
-				$(document).on ('mozfullscreenchange webkitfullscreenchange fullscreenchange',function(){
-				    isFullScreenMode= !isFullScreenMode;
-				    if(isFullScreenMode){
-				    	$(document.body).addClass('fullscreen');
-				    } else {
-				    	$(document.body).removeClass('fullscreen');
-				    }
-				});
+                $(document).on ('mozfullscreenchange webkitfullscreenchange fullscreenchange',function(){
+                    isFullScreenMode= !isFullScreenMode;
+                    if(isFullScreenMode){
+                        $(document.body).addClass('fullscreen');
+                    } else {
+                        $(document.body).removeClass('fullscreen');
+                    }
+                });
 
-				if(user.type != 'PRIMARY'){
-					window.setInterval(function(){
-						$(canvas).css({
-							top: ($(window).height() / 2) - ($(canvas).height() / 2),
-							left: ($(window).width() / 2) - ($(canvas).width() / 2)
-						});
-					}, 100);
-				}
+                if(user.type != 'PRIMARY'){
+                    window.setInterval(function(){
+                        $(canvas).css({
+                            top: ($(window).height() / 2) - ($(canvas).height() / 2),
+                            left: ($(window).width() / 2) - ($(canvas).width() / 2)
+                        });
+                    }, 100);
+                }
 
-			})(window.opener.tc, window.opener._);
-		</script>
-	</body>
+            })(window.opener.tc, window.opener._);
+        </script>
+    </body>
 </html>
