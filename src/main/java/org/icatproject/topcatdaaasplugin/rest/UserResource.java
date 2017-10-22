@@ -409,6 +409,8 @@ public class UserResource {
 
             SshClient sshClient = new SshClient(machine.getHost());
 
+            Properties properties = new Properties();
+            String uoc = properties.getProperty("uoc");
             com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
             com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
 
@@ -434,14 +436,20 @@ public class UserResource {
                 }
 
                 if (!isExistingUser) {
+                    String fedId = "";
+                    if(Boolean.parseBoolean(uoc)) {
+                        logger.debug("resolving federal ID from User Office ID");
+                        fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
+                    } else {
+                        fedId = (userName.split("/"))[1];
+                    }
+
                     MachineUser newMachineUser = new MachineUser();
                     newMachineUser.setUserName(userName);
                     newMachineUser.setType("SECONDARY");
                     newMachineUser.setMachine(machine);
                     newMachineUser.setWebsockifyToken(UUID.randomUUID().toString());
                     database.persist(newMachineUser);
-
-                    String fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
 
                     sshClient.exec("add_secondary_user " + fedId);
                     sshClient.exec("add_websockify_token " + newMachineUser.getWebsockifyToken());
