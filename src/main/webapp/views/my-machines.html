@@ -9,6 +9,20 @@
 		</div>
 	</div>
 
+	<div class="row" ng-if="myMachinesController.machines.length == 0">
+		<div class="col-sm-6 col-sm-push-3">
+			<div class="alert alert-info">
+				<b>Welcome</b>
+				<br><br>
+				It looks like you do not have any analysis environments yet. To create one, select the create button in the top right corner and pick which type of environment you want.
+    			<br><br>
+				You can then access to your environment by selecting the launch button and connecting through either your browser or via Windows remote desktop. You also have the ability to remotely access your data from your local PC.
+				<br><br>
+				See the <a href="/#/help"><b>Help</b></a> pages for more information.
+			</div>
+		</div>
+	</div>
+
 	<div class="row">
 		<div class="col-sm-8 col-sm-push-2">
 			<div class="machine" ng-repeat="machine in myMachinesController.machines">

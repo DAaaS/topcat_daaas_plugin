@@ -4,7 +4,7 @@
 
 	var app = angular.module('topcat');
 
-	app.controller('CreateMachineController', function($q, $scope, $state, $uibModalInstance, $timeout, $translate, tc, inform){
+	app.controller('CreateMachineController', function($q, $scope, $state, $uibModal, $uibModalInstance, $timeout, $translate, tc, inform){
 		var that = this;
         var facility = tc.facility($state.params.facilityName);
         var user = facility.user();
@@ -12,8 +12,6 @@
 		var timeout = $q.defer();
         var delaySeconds = user.daaas().config().createMachineDelaySeconds;
         $scope.$on('$destroy', function(){ timeout.resolve(); });
-
-        this.isCreating = false;
 
         this.machineTypeId = null;
 
@@ -27,15 +25,17 @@
     	});
 
         this.create = function() {
-
-            this.isCreating = true;
-
-            daaas.createMachine(timeout.promise, this.machineTypeId).then(function(){
-                $timeout(function(){
-                    $uibModalInstance.dismiss('cancel');
-                }, delaySeconds * 1000);
-            }, function(response){
+            $uibModalInstance.close();
+            var loading = $uibModal.open({
+                templateUrl: daaas.pluginUrl() + 'views/loading.html',
+                size : 'sm'
+            });
+            $timeout(function(){
+                loading.dismiss('cancel');
+            }, delaySeconds * 1000);
+            daaas.createMachine(this.machineTypeId).then(function(){}, function(response){
                 $uibModalInstance.dismiss('cancel');
+                loading.dismiss('cancel');
                 inform.add($translate.instant("DAAAS.MACHINE_NOT_AVAILABLE"), {
                     'ttl': 0,
                     'type': 'info'

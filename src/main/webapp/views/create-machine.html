@@ -4,7 +4,7 @@
     </div>
     <div class="modal-body">
 
-        <form novalidate name="createMachineController.form" ng-if="!createMachineController.isCreating">
+        <form novalidate name="createMachineController.form">
             <div class="form-group">
                 <div class="machine-types" take-up-remaining-height>
 
@@ -28,9 +28,6 @@
                 </div>
             </div>
         </form>
-
-        <p ng-if="createMachineController.isCreating"><span translate="DAAAS.CREATING_MACHINE"></span> <span class="loading collapsed"></p>
-
     </div>
     <div class="modal-footer" ng-if="!createMachineController.isCreating">
         <button type="submit" class="btn btn-primary" ng-click="createMachineController.create()" ng-disabled="createMachineController.form.$invalid ">Create</button>
