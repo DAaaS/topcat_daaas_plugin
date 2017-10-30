@@ -35,7 +35,6 @@
             }, delaySeconds * 1000);
             daaas.createMachine(this.machineTypeId).then(function(){}, function(response){
                 $uibModalInstance.dismiss('cancel');
-                loading.dismiss('cancel');
                 inform.add($translate.instant("DAAAS.MACHINE_NOT_AVAILABLE"), {
                     'ttl': 0,
                     'type': 'info'
