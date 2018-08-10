@@ -216,6 +216,8 @@ public class CloudClient {
         try {
             logger.info("createServer: " + name + ", " + imageRef + ", " + flavorRef + ", " + availabilityZone);
 
+            Properties properties = new Properties();
+
             JsonObjectBuilder server = Json.createObjectBuilder();
             server.add("name", name);
             server.add("imageRef", imageRef);
@@ -234,7 +236,6 @@ public class CloudClient {
             }
             server.add("metadata", metadataNode);
 
-            Properties properties = new Properties();
             server.add("key_name", properties.getProperty("sshKeyPairName"));
 
             String data = Json.createObjectBuilder().add("server", server).build().toString();
