@@ -27,7 +27,8 @@ public class TopcatClient {
     }
 
     public Boolean isAdmin(String icatUrl, String sessionId) throws Exception {
-        String url = "admin/isValidSession?icatUrl=" + URLEncoder.encode(icatUrl, "UTF8") + "&sessionId=" + URLEncoder.encode(sessionId, "UTF8");
+        Properties properties = new Properties();
+        String url = "admin/isValidSession?facilityName=" + properties.getProperty("facilityName") + "&sessionId=" + URLEncoder.encode(sessionId, "UTF8");
         return httpClient.get(url, generateStandardHeaders()).toString().equals("true");
     }
 
