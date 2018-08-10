@@ -9,6 +9,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.StringReader;
 
 
 public class IcatClient {
@@ -38,9 +39,12 @@ public class IcatClient {
     }
 
     public String getUserName() throws Exception {
-        return query("select user from User user where user.name = :user").getJsonObject(0).getString("name");
+        String url = "session/" + URLEncoder.encode(sessionId, "UTF8");
+        JsonReader jsonReader = Json.createReader(new StringReader(httpClient.get(url, generateStandardHeaders()).toString()));
+        JsonObject session = jsonReader.readObject();
+        jsonReader.close();
+        return session.getString("userName");
     }
-
 
     private Map<String, String> generateStandardHeaders() {
         Map<String, String> out = new HashMap<String, String>();
