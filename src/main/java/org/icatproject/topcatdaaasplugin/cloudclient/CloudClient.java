@@ -147,9 +147,10 @@ public class CloudClient {
 
     public EntityList<Image> getImages() throws DaaasException {
         EntityList<Image> out = new EntityList<Image>();
+        Response response = null;
 
         try {
-            Response response = getHTTPClient("IMAGE").get("images", generateStandardHeaders());
+            response = getHTTPClient("IMAGE").get("images", generateStandardHeaders());
             if (response.getCode() != 200) {
                 throw new BadRequestException(response.toString());
             }
@@ -159,11 +160,12 @@ public class CloudClient {
                 Image image = new Image();
                 image.setId(cloudImage.getString("id"));
                 image.setName(cloudImage.getString("name"));
-                image.setSize(cloudImage.getInt("size"));
+                image.setSize(cloudImage.getInt("size", 0));
                 out.add(image);
             }
         } catch (Exception e) {
             logger.error("Failed to get list of images");
+            logger.error(response.toString());
             throw new UnexpectedException(e.getMessage());
         }
 
@@ -219,6 +221,12 @@ public class CloudClient {
             server.add("imageRef", imageRef);
             server.add("flavorRef", flavorRef);
             server.add("availability_zone", availabilityZone);
+
+            JsonArrayBuilder networkList = Json.createArrayBuilder();
+            JsonObjectBuilder network = Json.createObjectBuilder();
+            network.add("uuid", properties.getProperty("networkId"));
+            networkList.add(network);
+            server.add("networks", networkList);
 
             JsonObjectBuilder metadataNode = Json.createObjectBuilder();
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
