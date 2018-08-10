@@ -52,7 +52,7 @@
                 }
             });
         }
-        var pollMachinesPromise = $interval(pollMachines, 1000);
+        var pollMachinesPromise = $interval(pollMachines, 5000);
         pollMachines();
 	    
 

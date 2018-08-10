@@ -54,6 +54,7 @@ public class UserResource {
             @QueryParam("sessionId") String sessionId) {
         try {
             String username = getUsername(icatUrl, sessionId);
+
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("user", username);
             EntityList<Entity> machine_list = database.query("select machine from MachineUser machineUser, machineUser.machine as machine where machineUser.userName = :user and machine.state = 'ACQUIRED'", params);
@@ -97,6 +98,30 @@ public class UserResource {
 
             logger.debug("createMachine: the userName is " + userName);
 
+            Properties properties = new Properties();
+            String uoc = properties.getProperty("uoc");
+            boolean uoc_b = Boolean.parseBoolean(uoc);
+            String fedId = "";
+            if(uoc_b) {
+                logger.debug("resolving federal ID from User Office ID");
+                com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
+                com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
+                fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
+                if (fedId == null) {
+                    throw new DaaasException("You User Office account is not linked to your Federal ID. Please contact isisuo@stfc.ac.uk.");
+                }
+            } else {
+                String[] split = userName.split("/");
+                if (split.length == 2) {
+                    fedId = split[1];
+                } else {
+                    fedId = userName;
+                }
+            }
+
+            logger.debug("createMachine: the fed id is " + fedId);
+
+            logger.debug("createMachine: added MachineUser");
             MachineUser machineUser = new MachineUser();
             machineUser.setUserName(userName);
             machineUser.setType("PRIMARY");
@@ -104,28 +129,25 @@ public class UserResource {
             machineUser.setMachine(machine);
             database.persist(machineUser);
 
-            logger.debug("createMachine: added MachineUser");
-
-            Properties properties = new Properties();
-            String uoc = properties.getProperty("uoc");
-			boolean uoc_b = Boolean.parseBoolean(uoc);
-            String fedId = "";
-            if(uoc_b) {
-				logger.debug("resolving federal ID from User Office ID");
-                com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
-                com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
-                fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
-            } else {
-				fedId = (userName.split("/"))[1];
-            }
-
-            logger.debug("createMachine: the fed id is " + fedId);
-
             SshClient sshClient = new SshClient(machine.getHost());
-            sshClient.exec("add_primary_user " + fedId);
+
             logger.debug("createMachine: add_primary_user " + fedId);
-            sshClient.exec("add_websockify_token " + machineUser.getWebsockifyToken());
+            sshClient.exec("add_primary_user " + fedId);
+            logger.debug("createMachine: add_primary_user completed" + fedId);
+
             logger.debug("createMachine: add_websockify_token " + machineUser.getWebsockifyToken());
+            sshClient.exec("add_websockify_token " + machineUser.getWebsockifyToken());
+
+            /*
+                This really needs to be abstracted out into a config file.
+            */
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("machineTypeId", machineTypeId);
+            MachineType machineType = (MachineType) database.query("select machineType from MachineType machineType WHERE machineType.id = :machineTypeId", params).get(0);
+            if ("daaas-isis-excitations".equals(machineType.getAquilonPersonality())) {
+                logger.debug("createMachine: custom excitations " + machineUser.getWebsockifyToken());
+                sshClient.exec("custom excitations " + fedId + " " + sessionId);
+            }
 
             machine.setScreenshot(Base64.getMimeDecoder().decode(sshClient.exec("get_screenshot")));
             machine.setCreatedAt(new Date());
@@ -135,10 +157,10 @@ public class UserResource {
 
             return machine.toResponse();
         } catch (DaaasException e) {
-            logger.debug("createMachine DaaasException: " + e.getMessage());
+            logger.error("createMachine DaaasException: " + e.getMessage());
             return e.toResponse();
         } catch (Exception e) {
-            logger.debug("createMachine Exception: " + e.getMessage());
+            logger.error("createMachine Exception: " + e.getMessage());
             return new DaaasException(e.getMessage()).toResponse();
         }
     }
@@ -277,9 +299,10 @@ public class UserResource {
 
             for (MachineUser user : machine.getMachineUsers()) {
                 if (user.getUserName().equals(username)) {
-                    CacheControl cacheControl = new CacheControl();
-                    cacheControl.setNoStore(true);
-                    return Response.ok(machine.getScreenshot()).cacheControl(cacheControl).build();
+                    //CacheControl cacheControl = new CacheControl();
+                    //cacheControl.setNoStore(true);
+                    //cacheControl.setMaxAge(300);
+                    return Response.ok(machine.getScreenshot()).build();//.cacheControl(cacheControl).build();
                 }
             }
 
@@ -362,7 +385,7 @@ public class UserResource {
                     out.append("promptcredentialonce:i:1\n");
                     out.append("drivestoredirect:s:\n");
 
-                    return Response.ok(out.toString()).header("Content-Disposition", "attachment; filename='" + machine.getHost() + ".rdp'").build();
+                    return Response.ok(out.toString()).header("Content-Disposition", "attachment; filename=" + machine.getHost() + ".rdp").build();
                 }
             }
 
@@ -441,7 +464,12 @@ public class UserResource {
                         logger.debug("resolving federal ID from User Office ID");
                         fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
                     } else {
-                        fedId = (userName.split("/"))[1];
+                        String[] split = userName.split("/");
+                        if (split.length == 2) {
+                            fedId = split[1];
+                        } else {
+                            fedId = userName;
+                        }
                     }
 
                     MachineUser newMachineUser = new MachineUser();
@@ -549,8 +577,7 @@ public class UserResource {
 
     private String getUsername(String icatUrl, String sessionId) throws Exception {
         IcatClient icatClient = new IcatClient(icatUrl, sessionId);
-        JsonObject user = (JsonObject) icatClient.query("select user from User user where user.name = :user").get(0);
-        return user.getString("name");
+        return icatClient.getUserName();
     }
 
 }
