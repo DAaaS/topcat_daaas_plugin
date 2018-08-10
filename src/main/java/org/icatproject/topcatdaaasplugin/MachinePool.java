@@ -135,10 +135,10 @@ public class MachinePool {
 
                     // Check the Aquilon Metadata attached to the VM to see if AQ_STATUS is set as SUCCESS or FAILED
                     // (or not set)
-                    if (!server.getStatus().equals("SUCCESS")) {
-                        logger.error("Machine {} failed...", machine.getId());
-                        throw new DaaasException("Machine failed");
-                    }
+                    //if (!server.getStatus().equals("SUCCESS")) {
+                    //    logger.error("Machine {} failed...", machine.getId());
+                    //    throw new DaaasException("Machine failed");
+                    //}
 
                     // Check to see if the machine has taken too long to configure itself
                     Properties properties = new Properties();
@@ -173,9 +173,10 @@ public class MachinePool {
         }
     }
 
-    @Schedule(hour = "*", minute = "*/5")
+    @Schedule(hour = "*", minute = "*/5", persistent=false)
     public void getScreenShots() {
         try {
+            logger.debug("Running screenshot");
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("state", STATE.ACQUIRED.name());
             EntityList<Entity> acquiredMachines = database.query("select machine from Machine machine where machine.state = :state", params);
