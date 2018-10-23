@@ -107,8 +107,8 @@ public class UserResource {
                 com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
                 com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
                 fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
-                if (fedId == null) {
-                    throw new DaaasException("You User Office account is not linked to your Federal ID. Please contact isisuo@stfc.ac.uk.");
+                if (fedId == null || fedId == "") {
+                    throw new DaaasException("You User Office account is not linked to your Federal ID. Please contact support@analysis.stfc.ac.uk");
                 }
             } else {
                 String[] split = userName.split("/");
@@ -563,7 +563,7 @@ public class UserResource {
     private EntityList<MachineType> getAvailableMachineTypes(String icatUrl, String sessionId) throws Exception {
         EntityList<MachineType> out = new EntityList<MachineType>();
         IcatClient icatClient = new IcatClient(icatUrl, sessionId);
-        for (Entity machineTypeEntity : database.query("select machineType from MachineType machineType")) {
+        for (Entity machineTypeEntity : database.query("SELECT mt FROM MachineType mt ORDER BY mt.name ASC")) {
             MachineType machineType = (MachineType) machineTypeEntity;
             for (MachineTypeScope machineTypeScope : machineType.getMachineTypeScopes()) {
                 if (icatClient.query(machineTypeScope.getQuery()).size() > 0) {
@@ -579,5 +579,4 @@ public class UserResource {
         IcatClient icatClient = new IcatClient(icatUrl, sessionId);
         return icatClient.getUserName();
     }
-
 }
