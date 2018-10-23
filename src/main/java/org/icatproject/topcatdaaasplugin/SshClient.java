@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 
 public class SshClient {
-    private static final Logger logger = LoggerFactory.getLogger(MachinePool.class);
+    private static final Logger logger = LoggerFactory.getLogger(SshClient.class);
 
     private String host;
 
@@ -54,7 +54,7 @@ public class SshClient {
         //logger.trace("Out-> " + out);
         logger.trace("Error-> " + error);
 
-        process.waitFor();
+        //process.waitFor();
 
 
         logger.trace("Returning...");
