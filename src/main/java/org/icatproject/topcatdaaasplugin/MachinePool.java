@@ -213,7 +213,13 @@ public class MachinePool {
     public void deleteMachine(Machine machine, String state) {
         try {
             logger.info("Deleting machine {}", machine.getId());
-            cloudClient.deleteServer(machine.getId());
+            try {
+                cloudClient.deleteServer(machine.getId());
+            } catch (UnexpectedException e) {
+                logger.warn("Failed to delete VM - instance error? : {}", e.getMessage());
+            } catch (Exception e) {
+                throw new UnexpectedException(e.getMessage());
+            }
             machine.setState(state);
             database.persist(machine);
         } catch (Exception e) {
