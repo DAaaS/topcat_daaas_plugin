@@ -38,7 +38,7 @@ public class LastActivity {
         VACANT, PREPARING, ACQUIRED, FAILED, DELETED;
     }
 
-    @Schedule(minute = "*/15")
+    @Schedule(hour = "*", minute = "*/15")
     public void lastActivity() {
         logger.info("Running last activity check");
         logger.info("===========================");
