@@ -108,6 +108,8 @@ public class CloudClient {
                 client = new HttpClient(properties.getProperty("computeEndpoint") + "/v2/" + properties.getProperty("project"));
             } else if ("IMAGE".equals(type)) {
                 client = new HttpClient(properties.getProperty("imageEndpoint") + "/v2");
+            } else if ("NETWORK".equals(type)) {
+                client = new HttpClient(properties.getProperty("networkEndpoint") + "/v2.0");
             } else {
                 throw new IllegalStateException("Unknown client type: " + type);
             }
@@ -212,7 +214,7 @@ public class CloudClient {
     //         }
     //     }
     // }
-    public Server createServer(String name, String imageRef, String flavorRef, String availabilityZone, Map<String, String> metadata) throws DaaasException {
+    public Server createServer(String name, String imageRef, String flavorRef, String availabilityZone) throws DaaasException {
         try {
             logger.info("createServer: " + name + ", " + imageRef + ", " + flavorRef + ", " + availabilityZone);
 
@@ -229,12 +231,6 @@ public class CloudClient {
             network.add("uuid", properties.getProperty("networkId"));
             networkList.add(network);
             server.add("networks", networkList);
-
-            JsonObjectBuilder metadataNode = Json.createObjectBuilder();
-            for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                metadataNode.add(entry.getKey(), entry.getValue());
-            }
-            server.add("metadata", metadataNode);
 
             server.add("key_name", properties.getProperty("sshKeyPairName"));
 
@@ -257,19 +253,14 @@ public class CloudClient {
     /**
      * Get and store metadata associated to the cloud VM.
      */
-    public Server getServer(String id) throws DaaasException {
+    public JsonObject getServer(String id) throws DaaasException {
         try {
             Response response = getHTTPClient("COMPUTE").get("servers/" + id, generateStandardHeaders());
             if (response.getCode() != 200) {
                 logger.error("Cloud HTTP request for VM {} failed", id);
                 throw new BadRequestException(response.toString());
             }
-            JsonObject metadata = parseJson(response.toString()).getJsonObject("server").getJsonObject("metadata");
-            Server out = new Server();
-            out.setId(id);
-            out.setStatus(metadata.getString("AQ_STATUS"));
-            out.setHost(metadata.getString("HOSTNAMES"));
-            return out;
+            return parseJson(response.toString()).getJsonObject("server");
         } catch (Exception e) {
             logger.error("Failed to get VM information for {}", id);
             throw new UnexpectedException(e.getMessage());
@@ -303,6 +294,45 @@ public class CloudClient {
         JsonObject out = jsonReader.readObject();
         jsonReader.close();
         return out;
+    }
+
+    public String assign_floating_ip(String vm_id) throws DaaasException {
+        try {
+            Response response = getHTTPClient("NETWORK").get("floatingips?status=DOWN", generateStandardHeaders());
+            if (response.getCode() != 200) {
+                throw new BadRequestException(response.toString());
+            }
+
+            // first get hold of a unused floating ip address
+            String ip_address_id = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(0).getString("id");
+            String ip_address = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(0).getString("floating_ip_address");
+
+            // next get hold of the port id for the VM
+            response = getHTTPClient("NETWORK").get("ports?device_id=" + vm_id, generateStandardHeaders());
+            if (response.getCode() != 200) {
+                throw new BadRequestException(response.toString());
+            }
+
+            String port_id = parseJson(response.toString()).getJsonArray("ports").getJsonObject(0).getString("id");
+
+            // finally associate the port id to the floating ip address
+            JsonObjectBuilder port = Json.createObjectBuilder();
+            port.add("port_id", port_id);
+
+            JsonObjectBuilder data = Json.createObjectBuilder();
+            data.add("floatingip", port);
+
+            response = getHTTPClient("NETWORK").put("floatingips/" + ip_address_id, generateStandardHeaders(), data.build().toString());
+
+            if (response.getCode() != 200) {
+                throw new BadRequestException(response.toString());
+            }
+
+            return ip_address;
+        } catch (Exception e) {
+            logger.error("Failed to create new VM");
+            throw new UnexpectedException(e.getMessage());
+        }
     }
 
 }

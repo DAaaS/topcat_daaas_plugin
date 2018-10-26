@@ -1,19 +1,37 @@
-
-topcatUrl https://localhost:8181
-allowedIcatUrls https://localhost:8181
+topcatUrl https://domain:8181
+allowedIcatUrls https://domain:8181
+facilityName facility
 
 domain default
-username daas-service
-password 
-project 5996a30fe7174cdba446d9c23fcdeab9
+username username
+password password
+project projectid
 
-identityEndpoint https://openstack.nubes.rl.ac.uk:5000
-computeEndpoint https://openstack.nubes.rl.ac.uk:8774
-imageEndpoint http://openstack.nubes.rl.ac.uk:9292
+identityEndpoint https://domain:5000
+computeEndpoint https://domain:8774
+imageEndpoint http://domain:9292
+networkEndpoint http://domain:9696
 
-sshKeyPairName daas-service
+# ssh details for contextualising the VMs
+sshKeyPairName keypairname
+sshUsername username
+sshPrivateKeyFile /home/user/id_rsa
 
-sshUsername daaas
-sshPrivateKeyFile /home/vagrant/openstack_id_rsa
-
+# how long to wait for machine to configure before marking them as ERROR
 maxPrepareSeconds 600
+
+# openstack network name and id
+networkName openstack_network_name
+networkId openstack_network_id
+
+# are we using openstack's floating IP feature
+floating_ips false
+
+# how long machines can be inactive for before deleting
+time_to_delete 12000
+
+# Get username via UserOffice
+uoc True
+
+# openstack security group
+security_group default

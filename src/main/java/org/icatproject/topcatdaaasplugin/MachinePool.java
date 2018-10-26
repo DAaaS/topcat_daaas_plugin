@@ -12,11 +12,15 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.*;
+import javax.json.JsonObject;
+import java.net.InetAddress;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import javax.json.*;
+
 
 @ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 @Singleton
@@ -45,7 +49,7 @@ public class MachinePool {
      * acquiring machines or the pool size being increase. Machine deletion may occur due to the pool size being
      * decreased.
      */
-    @Schedule(hour = "*", minute = "*/1")
+    @Schedule(hour = "*", minute = "*", second = "*/15")
     public void managePool() {
         logger.debug("Checking for machine pool updates");
 
@@ -101,54 +105,90 @@ public class MachinePool {
      *
      * If any of these conditions fail. The machine will be marked as FAILED and deleted.
      */
-    @Schedule(hour = "*", minute = "*/1")
+    @Schedule(hour = "*", minute = "*", second = "*/15")
     public void checkPreparing() throws DaaasException, IOException, InterruptedException {
         logger.debug("Checking for machines that have finished preparing");
+        Properties properties = new Properties();
 
         try {
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("state", STATE.PREPARING.name());
             EntityList<Entity> preparingMachines = database.query("select machine from Machine machine, machine.machineType as machineType where machine.state = :state", params);
+
+            logger.debug("hello");
             for (Entity machineEntity : preparingMachines) {
                 Machine machine = (Machine) machineEntity;
 
                 try {
-                    long created = (new Date().getTime() - machine.getCreatedAt().getTime()) / 1000;
-                    if (created < 60) {
-                        logger.debug("Machine {} is to young, skipping checks.", machine.getId());
-                        continue;
-                    }
+                    logger.debug("Found machine " + machine.getId());
+                    JsonObject vm_data = cloudClient.getServer(machine.getId());
 
-                    Server server = cloudClient.getServer(machine.getId());
-
-                    // Sometimes cloud VMs will be assigned two hostnames for some reason. If this occurs, just mark the
-                    // machine as failed.
-                    String hostnames[] = server.getHost().split("[ ]*,[ ]*");
-                    if (machine.getHost() == null && server.getHost() != null && hostnames.length == 1) {
-                        logger.info("Setting hostname of machine {} to {}", machine.getId(), server.getHost());
-                        machine.setHost(server.getHost());
-                        database.persist(machine);
-                    } else if (hostnames.length > 1) {
-                        logger.error("Machine {} has more than one hostname ({}). Setting state to failed.", machine.getId(), hostnames);
-                        throw new DaaasException("Machine failed");
-                    }
-
-                    // Check the Aquilon Metadata attached to the VM to see if AQ_STATUS is set as SUCCESS or FAILED
-                    // (or not set)
-                    //if (!server.getStatus().equals("SUCCESS")) {
-                    //    logger.error("Machine {} failed...", machine.getId());
-                    //    throw new DaaasException("Machine failed");
-                    //}
-
+                    logger.debug("Checking to see how long machine has been preparing for");
                     // Check to see if the machine has taken too long to configure itself
-                    Properties properties = new Properties();
                     int maxPrepareSeconds = Integer.valueOf(properties.getProperty("maxPrepareSeconds", "600"));
                     long createdSecondsAgo = (new Date().getTime() - machine.getCreatedAt().getTime()) / 1000;
                     if (createdSecondsAgo > maxPrepareSeconds) {
                         logger.error("Machine {} has taken longer than {} to configure. Setting state as failed.", machine.getId(), maxPrepareSeconds);
-                        throw new DaaasException("Machine failed");
+                        throw new DaaasException("Machine took too long to configure");
                     }
 
+                    logger.debug("Checking status of machine");
+                    logger.debug(vm_data.getString("status"));
+
+                    // If machine is in error state, delete, if not in ACTIVE state, skip
+                    if ("ERROR".equals(vm_data.getString("status"))) {
+                        logger.error("Problem creating machine {}", machine.getId());
+                        throw new DaaasException("Machine status ERROR");
+                    } else if (!"ACTIVE".equals(vm_data.getString("status"))) {
+                        logger.debug("Machine not yet active, skipping");
+                        logger.debug(vm_data.getString("status"));
+                        continue;
+                    }
+
+                    logger.debug("Checking value of hostname");
+                    logger.debug(machine.getHost());
+
+                    // if hostname not set, need to get hostname from IP
+                    // may require assigning a floating IP address if config value set
+                    if (machine.getHost() == null) {
+                        logger.debug("Hostname is null");
+                        Boolean floating_ips = Boolean.parseBoolean(properties.getProperty("floating_ips", "false"));
+                        JsonArray addresses = vm_data.getJsonObject("addresses").getJsonArray(properties.getProperty("networkName"));
+                        String ip_address = null;
+
+                        // find the correct IP address ie. floating or fixed
+                        for (int n = 0; n < addresses.size(); n++) {
+                            JsonObject ip_info = addresses.getJsonObject(n);
+                            if (!floating_ips && "fixed".equals(ip_info.getString("OS-EXT-IPS:type"))) {
+                                ip_address = ip_info.getString("addr").toString();
+                                break;
+                            }
+                            if (floating_ips && "floating".equals(ip_info.getString("OS-EXT-IPS:type"))) {
+                                ip_address = ip_info.getString("addr").toString();
+                                break;
+                            }
+                        }
+
+                        // fixed IP address not yet assigned, just wait
+                        if (!floating_ips && ip_address == null) {
+                            continue;
+                        }
+
+                        // floating IP address not yet assigned, so assign it
+                        if (floating_ips && ip_address == null) {
+                            ip_address = cloudClient.assign_floating_ip(machine.getId());
+                        }
+
+                        // update the DB VM info with it's hostname
+                        InetAddress addr = InetAddress.getByName(ip_address);
+                        String hostname = addr.getHostName();
+
+                        logger.info("Setting hostname of machine {} to {}", machine.getId(), hostname);
+                        machine.setHost(hostname);
+                        database.persist(machine);
+                    }
+
+                    logger.debug("Checking to see if machine is ready");
                     // Check to see if machine is actually ready. If so, mark it as VACANT so it is available to users.
                     SshClient sshClient = new SshClient(machine.getHost());
                     if (sshClient.exec("is_ready").equals("1\n")) {
@@ -234,14 +274,7 @@ public class MachinePool {
             logger.info(machineType.toJsonObjectBuilder().build().toString());
 
             Machine machine = new Machine();
-            Map<String, String> metadata = new HashMap<String, String>();
-            metadata.put("AQ_ARCHETYPE", machineType.getAquilonArchetype());
-            metadata.put("AQ_DOMAIN", machineType.getAquilonDomain());
-            metadata.put("AQ_PERSONALITY", machineType.getAquilonPersonality());
-            metadata.put("AQ_SANDBOX", machineType.getAquilonSandbox());
-            metadata.put("AQ_OSVERSION", machineType.getAquilonOSVersion());
-
-            Server server = cloudClient.createServer(machineType.getName(), machineType.getImageId(), machineType.getFlavorId(), machineType.getAvailabilityZone(), metadata);
+            Server server = cloudClient.createServer(machineType.getName(), machineType.getImageId(), machineType.getFlavorId(), machineType.getAvailabilityZone());
 
             machine.setId(server.getId());
             machine.setName(machineType.getName());
