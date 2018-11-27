@@ -49,7 +49,7 @@ public class MachinePool {
      * acquiring machines or the pool size being increase. Machine deletion may occur due to the pool size being
      * decreased.
      */
-    @Schedule(hour = "*", minute = "*", second = "*/15")
+    @Schedule(hour = "*", minute = "*/1")
     public void managePool() {
         logger.debug("Checking for machine pool updates");
 
@@ -105,7 +105,7 @@ public class MachinePool {
      *
      * If any of these conditions fail. The machine will be marked as FAILED and deleted.
      */
-    @Schedule(hour = "*", minute = "*", second = "*/15")
+    @Schedule(hour = "*", minute = "*/1")
     public void checkPreparing() throws DaaasException, IOException, InterruptedException {
         logger.debug("Checking for machines that have finished preparing");
         Properties properties = new Properties();
@@ -115,7 +115,6 @@ public class MachinePool {
             params.put("state", STATE.PREPARING.name());
             EntityList<Entity> preparingMachines = database.query("select machine from Machine machine, machine.machineType as machineType where machine.state = :state", params);
 
-            logger.debug("hello");
             for (Entity machineEntity : preparingMachines) {
                 Machine machine = (Machine) machineEntity;
 
@@ -123,7 +122,7 @@ public class MachinePool {
                     logger.debug("Found machine " + machine.getId());
                     JsonObject vm_data = cloudClient.getServer(machine.getId());
 
-                    logger.debug("Checking to see how long machine has been preparing for");
+                    logger.debug("Checking to see how long machine has been preparing for...");
                     // Check to see if the machine has taken too long to configure itself
                     int maxPrepareSeconds = Integer.valueOf(properties.getProperty("maxPrepareSeconds", "600"));
                     long createdSecondsAgo = (new Date().getTime() - machine.getCreatedAt().getTime()) / 1000;
@@ -132,7 +131,7 @@ public class MachinePool {
                         throw new DaaasException("Machine took too long to configure");
                     }
 
-                    logger.debug("Checking status of machine");
+                    logger.debug("Checking status of machine...");
                     logger.debug(vm_data.getString("status"));
 
                     // If machine is in error state, delete, if not in ACTIVE state, skip
@@ -140,12 +139,12 @@ public class MachinePool {
                         logger.error("Problem creating machine {}", machine.getId());
                         throw new DaaasException("Machine status ERROR");
                     } else if (!"ACTIVE".equals(vm_data.getString("status"))) {
-                        logger.debug("Machine not yet active, skipping");
+                        logger.debug("Machine not yet active, skipping...");
                         logger.debug(vm_data.getString("status"));
                         continue;
                     }
 
-                    logger.debug("Checking value of hostname");
+                    logger.debug("Checking value of hostname...");
                     logger.debug(machine.getHost());
 
                     // if hostname not set, need to get hostname from IP
@@ -188,7 +187,7 @@ public class MachinePool {
                         database.persist(machine);
                     }
 
-                    logger.debug("Checking to see if machine is ready");
+                    logger.debug("Checking to see if machine is ready...");
                     // Check to see if machine is actually ready. If so, mark it as VACANT so it is available to users.
                     SshClient sshClient = new SshClient(machine.getHost());
                     if (sshClient.exec("is_ready").equals("1\n")) {

@@ -1,6 +1,7 @@
 package org.icatproject.topcatdaaasplugin.cloudclient;
 
 import org.icatproject.topcatdaaasplugin.EntityList;
+import org.icatproject.topcatdaaasplugin.Entity;
 import org.icatproject.topcatdaaasplugin.Properties;
 import org.icatproject.topcatdaaasplugin.cloudclient.entities.AvailabilityZone;
 import org.icatproject.topcatdaaasplugin.cloudclient.entities.Flavor;
@@ -11,13 +12,14 @@ import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.icatproject.topcatdaaasplugin.exceptions.UnexpectedException;
 import org.icatproject.topcatdaaasplugin.httpclient.HttpClient;
 import org.icatproject.topcatdaaasplugin.httpclient.Response;
+import org.icatproject.topcatdaaasplugin.database.Database;
+import org.icatproject.topcatdaaasplugin.database.entities.Machine;
+import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ejb.DependsOn;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.ejb.Stateless;
+import javax.ejb.*;
 import javax.json.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.net.InetAddress;
 
 
 @DependsOn("TrustManagerInstaller")
@@ -32,6 +35,13 @@ import java.util.Map;
 @Startup
 @Stateless
 public class CloudClient {
+
+    @EJB
+    Database database;
+
+    public enum STATE {
+        VACANT, PREPARING, ACQUIRED, FAILED, DELETED;
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(CloudClient.class);
 
@@ -99,7 +109,6 @@ public class CloudClient {
     }
 
     private HttpClient getHTTPClient(String type) {
-        logger.debug("Creating new {} HTTP client", type);
         HttpClient client = null;
         try {
             Properties properties = new Properties();
@@ -212,6 +221,11 @@ public class CloudClient {
     //             "AQ_SANDBOX" => "sap86629/daas-excitations",
     //             "AQ_OSVERSION" => "7x-x86_6"
     //         }
+    //        "security_groups": [
+    //             {
+    //                 "name": "default"
+    //             }
+    //        ],
     //     }
     // }
     public Server createServer(String name, String imageRef, String flavorRef, String availabilityZone) throws DaaasException {
@@ -234,7 +248,18 @@ public class CloudClient {
 
             server.add("key_name", properties.getProperty("sshKeyPairName"));
 
+            String[] security_groups = properties.getProperty("security_groups").split(",");
+            JsonArrayBuilder securitygroupList = Json.createArrayBuilder();
+            for (int i=0; i < security_groups.length; i++) {
+                JsonObjectBuilder securitygroup = Json.createObjectBuilder();
+                securitygroup.add("name", security_groups[i]);
+                securitygroupList.add(securitygroup);
+                logger.debug("Adding security group: " + security_groups[i]);
+            }
+            server.add("security_groups", securitygroupList);
+
             String data = Json.createObjectBuilder().add("server", server).build().toString();
+            logger.debug("Create VM data: " + data);
             Response response = getHTTPClient("COMPUTE").post("servers", generateStandardHeaders(), data);
 
             if (response.getCode() >= 400) {
@@ -303,15 +328,44 @@ public class CloudClient {
                 throw new BadRequestException(response.toString());
             }
 
-            // first get hold of a unused floating ip address
-            String ip_address_id = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(0).getString("id");
-            String ip_address = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(0).getString("floating_ip_address");
+            String ip_address_id = null;
+            String ip_address = null;
+            for (int i = 0; i < parseJson(response.toString()).getJsonArray("floatingips").size(); i++) {
+                // first get hold of a unused floating ip address
+                ip_address_id = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(i).getString("id");
+                ip_address = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(i).getString("floating_ip_address");
+    
+                logger.debug("ipaddress = " + ip_address);
+
+                // we have to manually check if the ip is already in use as openstack give completely unreliable information
+                String hostname = InetAddress.getByName(ip_address).getHostName();
+
+                logger.debug("hostname = " + hostname);
+    
+                Map<String, Object> params = new HashMap<String, Object>();
+                params.put("state1", STATE.PREPARING.name());
+                params.put("state2", STATE.VACANT.name());
+                params.put("state3", STATE.ACQUIRED.name());
+                params.put("hostname", hostname);
+                EntityList<Entity> hostname_check = database.query("select machine from Machine machine, machine.machineType as machineType where (machine.state = :state1 or machine.state = :state2 or machine.state = :state3) and machine.host = :hostname", params);
+ 
+                if (hostname_check.size() != 0) {
+                    logger.warn("Openstack is trying to assign an ip address that is already in use ... again");
+                } else {
+                    break;
+                }
+            }
+
+            logger.debug("ipaddress2 = " + ip_address);
 
             // next get hold of the port id for the VM
             response = getHTTPClient("NETWORK").get("ports?device_id=" + vm_id, generateStandardHeaders());
             if (response.getCode() != 200) {
                 throw new BadRequestException(response.toString());
             }
+
+            logger.debug(response.toString());
+
 
             String port_id = parseJson(response.toString()).getJsonArray("ports").getJsonObject(0).getString("id");
 
@@ -324,13 +378,15 @@ public class CloudClient {
 
             response = getHTTPClient("NETWORK").put("floatingips/" + ip_address_id, generateStandardHeaders(), data.build().toString());
 
+            logger.debug(response.toString());
+
             if (response.getCode() != 200) {
                 throw new BadRequestException(response.toString());
             }
 
             return ip_address;
         } catch (Exception e) {
-            logger.error("Failed to create new VM");
+            logger.error("Failed to assign floating IP");
             throw new UnexpectedException(e.getMessage());
         }
     }
