@@ -565,6 +565,15 @@ public class UserResource {
         IcatClient icatClient = new IcatClient(icatUrl, sessionId);
         for (Entity machineTypeEntity : database.query("SELECT mt FROM MachineType mt ORDER BY mt.name ASC")) {
             MachineType machineType = (MachineType) machineTypeEntity;
+
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("MachineTypeId", machineType.getId());
+            params.put("state", MachinePool.STATE.VACANT.name());
+
+            int available = database.query("select machine from Machine machine, machine.machineType as machineType where machineType.id = :MachineTypeId and machine.state = :state", params).size();
+
+            machineType.setAquilonDomain(Integer.toString(available));
+
             for (MachineTypeScope machineTypeScope : machineType.getMachineTypeScopes()) {
                 if (icatClient.query(machineTypeScope.getQuery()).size() > 0) {
                     out.add(machineType);
