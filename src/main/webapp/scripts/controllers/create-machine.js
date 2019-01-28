@@ -35,7 +35,12 @@
             }, delaySeconds * 1000);
             daaas.createMachine(this.machineTypeId).then(function(){}, function(response){
                 $uibModalInstance.dismiss('cancel');
-                inform.add($translate.instant("DAAAS.MACHINE_NOT_AVAILABLE"), {
+                if (response != null && response['message'] != null) {
+                    var message = response['message']
+                } else {
+                    var message = "Error creating analysis environment. Please try again later."
+                }
+                inform.add(message, {
                     'ttl': 0,
                     'type': 'info'
                 });

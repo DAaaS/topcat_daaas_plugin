@@ -107,8 +107,8 @@ public class UserResource {
                 com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
                 com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
                 fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
-                if (fedId == null || fedId == "") {
-                    throw new DaaasException("You User Office account is not linked to your Federal ID. Please contact support@analysis.stfc.ac.uk");
+                if (fedId == null || fedId.equals("") || userName.replace("uows/", "").equals(fedId)) {
+                    throw new DaaasException("Your ISIS User Office account is not linked to your Federal ID. Please contact support@analysis.stfc.ac.uk and ask for your accounts to be linked.");
                 }
             } else {
                 String[] split = userName.split("/");
