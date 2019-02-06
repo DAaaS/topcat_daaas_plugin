@@ -330,33 +330,81 @@ public class CloudClient {
 
             String ip_address_id = null;
             String ip_address = null;
+            boolean port_id_check = true;
             for (int i = 0; i < parseJson(response.toString()).getJsonArray("floatingips").size(); i++) {
+                Map<String, Object> params = new HashMap<String, Object>();
+
                 // first get hold of a unused floating ip address
-                ip_address_id = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(i).getString("id");
-                ip_address = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(i).getString("floating_ip_address");
-    
-                logger.debug("ipaddress = " + ip_address);
+                JsonObject json = parseJson(response.toString()).getJsonArray("floatingips").getJsonObject(i);
+                ip_address_id = json.getString("id");
+                ip_address = json.getString("floating_ip_address");
+                port_id_check = json.isNull("port_id");
+
+                logger.debug("Proposed IP information = " + json.toString());
+                logger.debug("Proposed IP address = " + ip_address);
+                logger.debug("isNull(port_id) = " + Boolean.toString(port_id_check));
+
+                if (!port_id_check) {
+                    logger.warn("port_id is not null!");
+                }
+
+                params = new HashMap<String, Object>();
+                params.put("state1", STATE.PREPARING.name());
+                params.put("state2", STATE.VACANT.name());
+                params.put("state3", STATE.ACQUIRED.name());
+                EntityList<Entity> hostname_list = database.query("select machine from Machine machine, machine.machineType as machineType where machine.state = :state1 or machine.state = :state2 or machine.state = :state3", params);
+
+                logger.info("Listing current VMs");
+                for (Entity machineEntity : hostname_list) {
+                    Machine machine = (Machine) machineEntity;
+                    logger.debug(machine.getHost() + " " + machine.getName() + " " + machine.getId());
+                }
+
 
                 // we have to manually check if the ip is already in use as openstack give completely unreliable information
                 String hostname = InetAddress.getByName(ip_address).getHostName();
 
-                logger.debug("hostname = " + hostname);
-    
-                Map<String, Object> params = new HashMap<String, Object>();
+                logger.debug("Proposed Hostname = " + hostname);
+
+
+
+
+                params = new HashMap<String, Object>();
+                params.put("hostname", hostname);
+                EntityList<Entity> hostname_list2 = database.query("select machine from Machine machine where machine.host = :hostname", params);
+
+                logger.info("Listing all VMs with the listed hostname:");
+                for (Entity machineEntity : hostname_list2) {
+                    Machine machine = (Machine) machineEntity;
+                    logger.debug(machine.getHost() + " " + machine.getName() + " " + machine.getId());
+                }
+                logger.debug("#################################");
+
+
+
+
+
+                params = new HashMap<String, Object>();
                 params.put("state1", STATE.PREPARING.name());
                 params.put("state2", STATE.VACANT.name());
                 params.put("state3", STATE.ACQUIRED.name());
                 params.put("hostname", hostname);
                 EntityList<Entity> hostname_check = database.query("select machine from Machine machine, machine.machineType as machineType where (machine.state = :state1 or machine.state = :state2 or machine.state = :state3) and machine.host = :hostname", params);
- 
+
+                logger.info("Hostname check = " + hostname_check.toString());
+
                 if (hostname_check.size() != 0) {
                     logger.warn("Openstack is trying to assign an ip address that is already in use ... again");
                 } else {
+                    logger.debug("Unique hostname detected");
+                    logger.debug(Integer.toString(hostname_check.size()));
                     break;
                 }
             }
 
-            logger.debug("ipaddress2 = " + ip_address);
+
+
+
 
             // next get hold of the port id for the VM
             response = getHTTPClient("NETWORK").get("ports?device_id=" + vm_id, generateStandardHeaders());
@@ -364,8 +412,7 @@ public class CloudClient {
                 throw new BadRequestException(response.toString());
             }
 
-            logger.debug(response.toString());
-
+            logger.debug("VM port ID = " + response.toString());
 
             String port_id = parseJson(response.toString()).getJsonArray("ports").getJsonObject(0).getString("id");
 
@@ -378,7 +425,7 @@ public class CloudClient {
 
             response = getHTTPClient("NETWORK").put("floatingips/" + ip_address_id, generateStandardHeaders(), data.build().toString());
 
-            logger.debug(response.toString());
+            logger.debug("Mapping output = " + response.toString());
 
             if (response.getCode() != 200) {
                 throw new BadRequestException(response.toString());
@@ -387,6 +434,7 @@ public class CloudClient {
             return ip_address;
         } catch (Exception e) {
             logger.error("Failed to assign floating IP");
+            logger.error(e.getMessage());
             throw new UnexpectedException(e.getMessage());
         }
     }
