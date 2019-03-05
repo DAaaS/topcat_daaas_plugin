@@ -7,6 +7,7 @@ import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineTypeScope;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineUser;
 import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
+import org.icatproject.topcatdaaasplugin.httpclient.HttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,12 +46,29 @@ import com.stfc.useroffice.webservice.*;
 public class UserResource {
 
     private static final Logger logger = LoggerFactory.getLogger(UserResource.class);
+    private static final Properties properties = new Properties();
 
     @EJB
     Database database;
 
     @EJB
     MachinePool machinePool;
+
+    private HttpClient get_vmm_client() {
+        String vmmHost = properties.getProperty("vmmHost");
+        HttpClient vmmClient = new HttpClient(vmmHost);
+        return vmmClient;
+    }
+
+    private Map<String, String> get_vmm_client_headers() {
+        String vmmUser = properties.getProperty("vmmUser");
+        String vmmPassword = properties.getProperty("vmmPassword");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("VMM-User", vmmUser);
+        headers.put("VMM-Password", vmmPassword);
+        headers.put("Content-Type", "application/json");
+        return headers;
+    }
 
     @GET
     @Path("/machines")
@@ -551,10 +569,10 @@ public class UserResource {
             @QueryParam("icatUrl") String icatUrl,
             @QueryParam("sessionId") String sessionId) {
         try {
-            return getAvailableMachineTypes(icatUrl, sessionId).toResponse();
-        } catch (DaaasException e) {
-            logger.debug("getMachineTypes DaaasException: " + e.getMessage());
-            return e.toResponse();
+            HttpClient vmmClient = get_vmm_client();
+            Map<String, String> headers = get_vmm_client_headers();
+            String machineTypes = vmmClient.get("machinetypes", headers).toString();
+            return Response.status(200).entity(machineTypes).build();
         } catch (Exception e) {
             logger.debug("getMachineTypes Exception: " + e.getMessage());
             return new DaaasException(e.getMessage()).toResponse();

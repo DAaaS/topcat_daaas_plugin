@@ -41,3 +41,8 @@ uourl https://uo.url/uo?WSDL
 uowebserviceurl http://webservice.url/
 uowebserviceextension UserOfficeWebService
 uokey key
+
+# Virtual Machine Manager
+vmmHost http://127.0.0.1:8080
+vmmUser example_cloud_owner
+vmmPassword owner_password
