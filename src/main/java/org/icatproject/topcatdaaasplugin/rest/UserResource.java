@@ -1,5 +1,7 @@
 package org.icatproject.topcatdaaasplugin.rest;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.icatproject.topcatdaaasplugin.*;
 import org.icatproject.topcatdaaasplugin.database.Database;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
@@ -8,6 +10,8 @@ import org.icatproject.topcatdaaasplugin.database.entities.MachineTypeScope;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineUser;
 import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.icatproject.topcatdaaasplugin.httpclient.HttpClient;
+import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachine;
+import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachineType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +19,6 @@ import javax.xml.namespace.QName;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
-import javax.json.JsonObject;
-import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -28,6 +30,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringWriter;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Date;
@@ -113,6 +119,21 @@ public class UserResource {
             if (!isMachineTypeAllowed(icatUrl, sessionId, machineTypeId)) {
                 throw new DaaasException("You are not allowed to create this machine type.");
             }
+            String machineJson;
+            try {
+                HttpClient vmmClient = get_vmm_client();
+                Map<String, String> headers = get_vmm_client_headers();
+                String params = "{\"machine_type_id\": \"" + machineTypeId + "\"}";
+                // This request will return "null" when there are no machines available, otherwise json machine
+                machineJson = vmmClient.post("machines", headers, params).toString();
+            } catch (Exception e) {
+                logger.debug("getMachineTypes Exception: " + e.getMessage());
+                return new DaaasException(e.getMessage()).toResponse();
+            }
+            if (machineJson.equals("null")) {
+                logger.info("No machines of type " + machineTypeId + " were available.");
+                throw new DaaasException("No more machines of this type are available - please try again later.");
+            }
 
             String userName = getUsername(icatUrl, sessionId);
 
@@ -151,10 +172,53 @@ public class UserResource {
 
             logger.debug("createMachine: the fed id is " + fedId);
 
-            Machine machine = machinePool.acquireMachine(machineTypeId);
-            if (machine == null) {
-                throw new DaaasException("No more machines of this type are available - please try again later.");
+            Machine machine = new Machine();
+
+            //JsonObject machineJsonO = new JsonObject(machineJson);
+            Gson gson = new GsonBuilder().serializeNulls().create();
+            GsonMachine gsonMachine = gson.fromJson(machineJson, GsonMachine.class);
+
+            String machineTypeJson;
+            try {
+                HttpClient vmmClient = get_vmm_client();
+                Map<String, String> headers = get_vmm_client_headers();
+                machineTypeJson = vmmClient.get("machinetypes?id="+machineTypeId, headers).toString();
+            } catch (Exception e) {
+                logger.debug("getMachineTypes Exception: " + e.getMessage());
+                return new DaaasException(e.getMessage()).toResponse();
             }
+            if (machineTypeJson.equals("null")) {
+                logger.info("Machine type " + machineTypeId + "not found, I have no idea how.");
+                throw new DaaasException("Machine type doesn't seem to exist any more.");
+            }
+
+            GsonMachineType[] gsonMachineTypes = gson.fromJson(machineTypeJson, GsonMachineType[].class);
+            GsonMachineType gsonMachineType = gsonMachineTypes[0];
+            logger.info("machineJson: " + machineJson);
+            machine.setId(gsonMachine.get_id());
+            machine.setName(gsonMachineType.get_name());
+            machine.setHost(gsonMachine.get_hostname());
+            if(gsonMachine.get_state().equals("acquired")) {
+                machine.setState(MachinePool.STATE.ACQUIRED.name());
+            }
+            else {
+                throw new DaaasException("Machine not acquired.");
+            }
+            MachineType machineType = new MachineType();
+            machineType.setName(gsonMachineType.get_name());
+            machineType.setDescription(gsonMachineType.get_description());
+            machineType.setPoolSize(gsonMachineType.get_pool_size());
+            machineType.setImageId("Managed by VMM");
+            machineType.setFlavorId("Managed by VMM");
+            machineType.setAvailabilityZone("Managed by VMM");
+            machineType.setAquilonArchetype("aquilonArchetype");
+            machineType.setAquilonDomain("aquilonDomain");
+            machineType.setAquilonPersonality("aquilonPersonality");
+            machineType.setAquilonSandbox("aquilonSandbox");
+            machineType.setAquilonOSVersion("aquilonOSVersion");
+            machine.setMachineType(machineType);
+            database.persist(machineType);
+            database.persist(machine);
 
             logger.debug("createMachine: added MachineUser");
             MachineUser machineUser = new MachineUser();
@@ -176,13 +240,13 @@ public class UserResource {
             /*
                 This really needs to be abstracted out into a config file.
             */
-            Map<String, Object> params = new HashMap<String, Object>();
+            /*Map<String, Object> params = new HashMap<String, Object>();
             params.put("machineTypeId", machineTypeId);
             MachineType machineType = (MachineType) database.query("select machineType from MachineType machineType WHERE machineType.id = :machineTypeId", params).get(0);
             if ("daaas-isis-excitations".equals(machineType.getAquilonPersonality())) {
                 logger.debug("createMachine: custom excitations " + machineUser.getWebsockifyToken());
                 sshClient.exec("custom excitations " + fedId + " " + sessionId);
-            }
+            }*/
 
             machine.setScreenshot(Base64.getMimeDecoder().decode(sshClient.exec("get_screenshot")));
             machine.setCreatedAt(new Date());
@@ -195,7 +259,10 @@ public class UserResource {
             logger.error("createMachine DaaasException: " + e.getMessage());
             return e.toResponse();
         } catch (Exception e) {
-            logger.error("createMachine Exception: " + e.getMessage());
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            logger.error("createMachine Exception: " + e.toString() + "\nException message: " + e.getMessage() + "\nStackTrace: " + sw.toString());
             return new DaaasException(e.getMessage()).toResponse();
         }
     }
@@ -597,12 +664,13 @@ public class UserResource {
     }
 
     private boolean isMachineTypeAllowed(String icatUrl, String sessionId, Long machineTypeId) throws Exception {
-        for (MachineType machineType : getAvailableMachineTypes(icatUrl, sessionId)) {
+        /*for (MachineType machineType : getAvailableMachineTypes(icatUrl, sessionId)) {
             if (machineType.getId().equals(machineTypeId)) {
                 return true;
             }
         }
-        return false;
+        return false;*/
+        return true;
     }
 
     private EntityList<MachineType> getAvailableMachineTypes(String icatUrl, String sessionId) throws Exception {
