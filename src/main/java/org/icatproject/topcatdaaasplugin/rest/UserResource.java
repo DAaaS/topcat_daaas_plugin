@@ -217,6 +217,7 @@ public class UserResource {
 
             machine.setState(MachinePool.STATE.DELETED.name());
             database.persist(machine);
+            vmmClient.delete_machine(id);
 
             return machine.toResponse();
         } catch (DaaasException e) {

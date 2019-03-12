@@ -3,7 +3,7 @@ package org.icatproject.topcatdaaasplugin.jsonHandler;
 import com.google.gson.Gson;
 
 public class GsonMachine {
-    private String provider_id;
+    private int id;
     private String state;
     private int machine_type_id;
     private String hostname;
@@ -12,8 +12,8 @@ public class GsonMachine {
         // no-args constructor
     }
 
-    public String get_id() {
-        return provider_id;
+    public int get_id() {
+        return id;
     }
     public String get_state() {
         return state;

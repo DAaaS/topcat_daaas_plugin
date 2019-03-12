@@ -1,20 +1,14 @@
 package org.icatproject.topcatdaaasplugin;
 
 import org.icatproject.topcatdaaasplugin.cloudclient.CloudClient;
-import org.icatproject.topcatdaaasplugin.cloudclient.entities.Server;
 import org.icatproject.topcatdaaasplugin.database.Database;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
-import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
-import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.icatproject.topcatdaaasplugin.exceptions.UnexpectedException;
-import org.icatproject.topcatdaaasplugin.Properties;
+import org.icatproject.topcatdaaasplugin.vmm.VmmClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
 import javax.ejb.*;
-import java.io.IOException;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.text.DateFormat;
@@ -27,6 +21,7 @@ import java.util.Date;
 public class LastActivity {
 
     private static final Logger logger = LoggerFactory.getLogger(LastActivity.class);
+    private VmmClient vmmClient = new VmmClient();
 
     @EJB
     Database database;
@@ -77,7 +72,7 @@ public class LastActivity {
                     if (difference > deleteTime) {
                         logger.info("In activity on machine {} is greater than deleteTime. Deleting", machine.getId());
                         try {
-                            cloudClient.deleteServer(machine.getId());
+                            vmmClient.delete_machine(machine.getId());
                         } catch (UnexpectedException e) {
                             logger.warn("Failed to delete VM - instance error? : {}", e.getMessage());
                         } catch (Exception e) {

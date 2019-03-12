@@ -41,8 +41,7 @@ public class VmmClient {
     public MachineType get_machine_type(long machineTypeId) throws DaaasException {
         String machineTypeJson;
         try {
-            HttpClient vmmClient = httpClient;
-            machineTypeJson = vmmClient.get("machinetypes?id="+machineTypeId, clientHeaders).toString();
+            machineTypeJson = httpClient.get("machinetypes?id="+machineTypeId, clientHeaders).toString();
         } catch (Exception e) {
             logger.debug("getMachineTypes Exception: " + e.getMessage());
             throw new DaaasException(e.getMessage());
@@ -84,7 +83,7 @@ public class VmmClient {
         }
         GsonMachine gsonMachine = gson.fromJson(machineJson, GsonMachine.class);
         Machine machine = new Machine();
-        machine.setId(gsonMachine.get_id());
+        machine.setId(Integer.toString(gsonMachine.get_id()));
         machine.setHost(gsonMachine.get_hostname());
         if(gsonMachine.get_state().equals("acquired")) {
             machine.setState(MachinePool.STATE.ACQUIRED.name());
@@ -99,4 +98,18 @@ public class VmmClient {
         return httpClient.get("machinetypes", clientHeaders).toString();
     }
 
+    public void delete_machine(String id) throws DaaasException {
+        int response;
+        try {
+            // This request will return 200 if the machine is deleted
+            response = httpClient.delete("machines?id=" + id, clientHeaders).getCode();
+        } catch (Exception e) {
+            logger.debug("delete_machine Exception: " + e.getMessage());
+            throw new DaaasException(e.getMessage());
+        }
+        if (response != 200) {
+            logger.info("Could not delete machine with ID: " + id + ".");
+            throw new DaaasException("Could not delete machine with ID: " + id + ".");
+        }
+    }
 }
