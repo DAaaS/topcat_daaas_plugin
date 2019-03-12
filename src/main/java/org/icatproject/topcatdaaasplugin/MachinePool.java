@@ -20,7 +20,7 @@ public class MachinePool {
     private static final Logger logger = LoggerFactory.getLogger(MachinePool.class);
 
     public enum STATE {
-        VACANT, PREPARING, ACQUIRED, FAILED, DELETED;
+        VACANT, PREPARING, ACQUIRED, FAILED, DELETED
     }
 
     @EJB

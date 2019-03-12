@@ -12,6 +12,6 @@ import javax.ws.rs.core.Response;
  */
 public interface ResponseProducer {
 
-    public Response toResponse();
+    Response toResponse();
 
 }

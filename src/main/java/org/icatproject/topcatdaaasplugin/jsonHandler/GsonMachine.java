@@ -1,7 +1,5 @@
 package org.icatproject.topcatdaaasplugin.jsonHandler;
 
-import com.google.gson.Gson;
-
 public class GsonMachine {
     private int id;
     private String state;

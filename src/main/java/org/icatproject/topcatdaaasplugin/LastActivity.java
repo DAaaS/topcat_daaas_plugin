@@ -1,6 +1,5 @@
 package org.icatproject.topcatdaaasplugin;
 
-import org.icatproject.topcatdaaasplugin.cloudclient.CloudClient;
 import org.icatproject.topcatdaaasplugin.database.Database;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
 import org.icatproject.topcatdaaasplugin.exceptions.UnexpectedException;
@@ -26,11 +25,8 @@ public class LastActivity {
     @EJB
     Database database;
 
-    @EJB
-    CloudClient cloudClient;
-
     public enum STATE {
-        VACANT, PREPARING, ACQUIRED, FAILED, DELETED;
+        VACANT, PREPARING, ACQUIRED, FAILED, DELETED
     }
 
     @Schedule(hour = "*", minute = "*/15")
@@ -39,10 +35,9 @@ public class LastActivity {
         logger.info("===========================");
         Properties properties = new Properties();
         long deleteTime = Long.parseLong(properties.getProperty("time_to_delete"));
-        int inactivityTime = 0; // Time since last activity in seconds. To be determined from shell script run on VM
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("state", STATE.ACQUIRED.name());
             EntityList<Entity> machines = database.query("select machine from Machine machine where machine.state = :state", params);
     
@@ -70,7 +65,7 @@ public class LastActivity {
                     logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
                     if (difference > deleteTime) {
-                        logger.info("In activity on machine {} is greater than deleteTime. Deleting", machine.getId());
+                        logger.info("Inactivity on machine {} is greater than deleteTime. Deleting", machine.getId());
                         try {
                             vmmClient.delete_machine(machine.getId());
                         } catch (UnexpectedException e) {

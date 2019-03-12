@@ -71,7 +71,7 @@ public class AdminResource {
         try {
             authorize(icatUrl, sessionId);
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -106,7 +106,7 @@ public class AdminResource {
         try {
             authorize(icatUrl, sessionId);
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -155,7 +155,7 @@ public class AdminResource {
         try {
             authorize(icatUrl, sessionId);
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -166,7 +166,7 @@ public class AdminResource {
             IcatClient icatClient = new IcatClient(icatUrl, sessionId);
             String userName = icatClient.getUserName();
 
-            EntityList<MachineUser> newMachineUsers = new EntityList<MachineUser>();
+            EntityList<MachineUser> newMachineUsers = new EntityList<>();
 
             for (MachineUser machineUser : machine.getMachineUsers()) {
                 if (machineUser.getType().equals("PRIMARY") || !machineUser.getUserName().equals(userName)) {

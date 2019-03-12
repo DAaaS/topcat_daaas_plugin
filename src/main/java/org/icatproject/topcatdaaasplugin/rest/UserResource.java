@@ -50,9 +50,6 @@ public class UserResource {
     @EJB
     Database database;
 
-    @EJB
-    MachinePool machinePool;
-
     private VmmClient vmmClient = new VmmClient();
 
     @GET
@@ -64,7 +61,7 @@ public class UserResource {
         try {
             String username = getUsername(icatUrl, sessionId);
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("user", username);
             EntityList<Entity> machine_list = database.query("select machine from MachineUser machineUser, machineUser.machine as machine where machineUser.userName = :user and machine.state = 'ACQUIRED'", params);
             for (Entity e : machine_list) {
@@ -111,9 +108,9 @@ public class UserResource {
             logger.debug("createMachine: the userName is " + userName);
 
             Properties properties = new Properties();
-            /*String uoc = properties.getProperty("uoc");
+            String uoc = properties.getProperty("uoc");
             boolean uoc_b = Boolean.parseBoolean(uoc);
-            String fedId = "";
+            String fedId;
             if(uoc_b) {
                 logger.debug("resolving federal ID from User Office ID");
 
@@ -139,8 +136,7 @@ public class UserResource {
                 } else {
                     fedId = userName;
                 }
-            }*/
-            String fedId = "gfx39171";
+            }
 
             logger.debug("createMachine: the fed id is " + fedId);
 
@@ -240,7 +236,7 @@ public class UserResource {
         logger.info("A user is attempting to save a machine setting it's name to '" + name + "', id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -278,7 +274,7 @@ public class UserResource {
         //logger.info("A user is attempting to set the width/height of a machine with id to " + width + "x" + height + ", id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -315,7 +311,7 @@ public class UserResource {
             @QueryParam("icatUrl") String icatUrl,
             @QueryParam("sessionId") String sessionId) {
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -361,7 +357,7 @@ public class UserResource {
         logger.info("A user is attempting to get an rdp file, id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -444,7 +440,7 @@ public class UserResource {
         logger.info("A user is attempting to share a machine, id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -456,7 +452,7 @@ public class UserResource {
             }
 
             String[] userNamesList = userNames.split("\\s*,\\s*");
-            EntityList<MachineUser> newMachineUsers = new EntityList<MachineUser>();
+            EntityList<MachineUser> newMachineUsers = new EntityList<>();
 
             SshClient sshClient = new SshClient(machine.getHost());
 
@@ -495,7 +491,7 @@ public class UserResource {
                 }
 
                 if (!isExistingUser) {
-                    String fedId = "";
+                    String fedId;
                     if(Boolean.parseBoolean(uoc)) {
                         logger.debug("resolving federal ID from User Office ID");
                         PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
