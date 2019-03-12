@@ -1,0 +1,102 @@
+package org.icatproject.topcatdaaasplugin.vmm;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.icatproject.topcatdaaasplugin.MachinePool;
+import org.icatproject.topcatdaaasplugin.Properties;
+import org.icatproject.topcatdaaasplugin.database.entities.Machine;
+import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
+import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
+import org.icatproject.topcatdaaasplugin.httpclient.HttpClient;
+import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachine;
+import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachineType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class VmmClient {
+    private static final Logger logger = LoggerFactory.getLogger(VmmClient.class);
+    private static final Properties properties = new Properties();
+    private Gson gson = new GsonBuilder().serializeNulls().create();
+    private HttpClient httpClient;
+    private Map<String, String> clientHeaders;
+
+    public VmmClient () {
+        httpClient = new HttpClient(properties.getProperty("vmmHost"));
+        clientHeaders = get_vmm_client_headers();
+    }
+
+    private Map<String, String> get_vmm_client_headers() {
+        String vmmUser = properties.getProperty("vmmUser");
+        String vmmPassword = properties.getProperty("vmmPassword");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("VMM-User", vmmUser);
+        headers.put("VMM-Password", vmmPassword);
+        headers.put("Content-Type", "application/json");
+        return headers;
+    }
+
+    public MachineType get_machine_type(long machineTypeId) throws DaaasException {
+        String machineTypeJson;
+        try {
+            HttpClient vmmClient = httpClient;
+            machineTypeJson = vmmClient.get("machinetypes?id="+machineTypeId, clientHeaders).toString();
+        } catch (Exception e) {
+            logger.debug("getMachineTypes Exception: " + e.getMessage());
+            throw new DaaasException(e.getMessage());
+        }
+        if (machineTypeJson.equals("null")) {
+            logger.info("Machine type " + machineTypeId + "not found, I have no idea how.");
+            throw new DaaasException("Machine type doesn't seem to exist any more.");
+        }
+
+        GsonMachineType gsonMachineType = gson.fromJson(machineTypeJson, GsonMachineType[].class)[0];
+        MachineType machineType = new MachineType();
+        machineType.setName(gsonMachineType.get_name());
+        machineType.setDescription(gsonMachineType.get_description());
+        machineType.setPoolSize(gsonMachineType.get_pool_size());
+        machineType.setImageId("Managed by VMM");
+        machineType.setFlavorId("Managed by VMM");
+        machineType.setAvailabilityZone("Managed by VMM");
+        machineType.setAquilonArchetype("aquilonArchetype");
+        machineType.setAquilonDomain("aquilonDomain");
+        machineType.setAquilonPersonality("aquilonPersonality");
+        machineType.setAquilonSandbox("aquilonSandbox");
+        machineType.setAquilonOSVersion("aquilonOSVersion");
+        return machineType;
+    }
+
+    public Machine acquire_machine(long machineTypeId) throws DaaasException {
+        String machineJson;
+        try {
+            String params = "{\"machine_type_id\": \"" + machineTypeId + "\"}";
+            // This request will return "null" when there are no machines available, otherwise json machine
+            machineJson = httpClient.post("machines", clientHeaders, params).toString();
+        } catch (Exception e) {
+            logger.debug("getMachineTypes Exception: " + e.getMessage());
+            throw new DaaasException(e.getMessage());
+        }
+        if (machineJson.equals("null")) {
+            logger.info("No machines of type " + machineTypeId + " were available.");
+            throw new DaaasException("No more machines of this type are available - please try again later.");
+        }
+        GsonMachine gsonMachine = gson.fromJson(machineJson, GsonMachine.class);
+        Machine machine = new Machine();
+        machine.setId(gsonMachine.get_id());
+        machine.setHost(gsonMachine.get_hostname());
+        if(gsonMachine.get_state().equals("acquired")) {
+            machine.setState(MachinePool.STATE.ACQUIRED.name());
+        }
+        else {
+            throw new DaaasException("Machine not acquired.");
+        }
+        return machine;
+    }
+
+    public String get_machine_types_json() throws Exception {
+        return httpClient.get("machinetypes", clientHeaders).toString();
+    }
+
+}

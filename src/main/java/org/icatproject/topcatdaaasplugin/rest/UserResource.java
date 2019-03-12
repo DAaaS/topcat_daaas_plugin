@@ -1,17 +1,13 @@
 package org.icatproject.topcatdaaasplugin.rest;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.icatproject.topcatdaaasplugin.*;
+import org.icatproject.topcatdaaasplugin.vmm.VmmClient;
 import org.icatproject.topcatdaaasplugin.database.Database;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineTypeScope;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineUser;
 import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
-import org.icatproject.topcatdaaasplugin.httpclient.HttpClient;
-import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachine;
-import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachineType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +26,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.io.StringWriter;
 import java.util.Map;
 import java.util.HashMap;
@@ -52,7 +46,6 @@ import com.stfc.useroffice.webservice.*;
 public class UserResource {
 
     private static final Logger logger = LoggerFactory.getLogger(UserResource.class);
-    private static final Properties properties = new Properties();
 
     @EJB
     Database database;
@@ -60,21 +53,7 @@ public class UserResource {
     @EJB
     MachinePool machinePool;
 
-    private HttpClient get_vmm_client() {
-        String vmmHost = properties.getProperty("vmmHost");
-        HttpClient vmmClient = new HttpClient(vmmHost);
-        return vmmClient;
-    }
-
-    private Map<String, String> get_vmm_client_headers() {
-        String vmmUser = properties.getProperty("vmmUser");
-        String vmmPassword = properties.getProperty("vmmPassword");
-        Map<String, String> headers = new HashMap<>();
-        headers.put("VMM-User", vmmUser);
-        headers.put("VMM-Password", vmmPassword);
-        headers.put("Content-Type", "application/json");
-        return headers;
-    }
+    private VmmClient vmmClient = new VmmClient();
 
     @GET
     @Path("/machines")
@@ -119,28 +98,20 @@ public class UserResource {
             if (!isMachineTypeAllowed(icatUrl, sessionId, machineTypeId)) {
                 throw new DaaasException("You are not allowed to create this machine type.");
             }
-            String machineJson;
-            try {
-                HttpClient vmmClient = get_vmm_client();
-                Map<String, String> headers = get_vmm_client_headers();
-                String params = "{\"machine_type_id\": \"" + machineTypeId + "\"}";
-                // This request will return "null" when there are no machines available, otherwise json machine
-                machineJson = vmmClient.post("machines", headers, params).toString();
-            } catch (Exception e) {
-                logger.debug("getMachineTypes Exception: " + e.getMessage());
-                return new DaaasException(e.getMessage()).toResponse();
-            }
-            if (machineJson.equals("null")) {
-                logger.info("No machines of type " + machineTypeId + " were available.");
-                throw new DaaasException("No more machines of this type are available - please try again later.");
-            }
+            Machine machine = vmmClient.acquire_machine(machineTypeId);
+            MachineType machineType = vmmClient.get_machine_type(machineTypeId);
+            machine.setName(machineType.getName());
+            machine.setMachineType(machineType);
+            database.persist(machineType);
+            database.persist(machine);
+
 
             String userName = getUsername(icatUrl, sessionId);
 
             logger.debug("createMachine: the userName is " + userName);
 
             Properties properties = new Properties();
-            String uoc = properties.getProperty("uoc");
+            /*String uoc = properties.getProperty("uoc");
             boolean uoc_b = Boolean.parseBoolean(uoc);
             String fedId = "";
             if(uoc_b) {
@@ -168,57 +139,10 @@ public class UserResource {
                 } else {
                     fedId = userName;
                 }
-            }
+            }*/
+            String fedId = "gfx39171";
 
             logger.debug("createMachine: the fed id is " + fedId);
-
-            Machine machine = new Machine();
-
-            //JsonObject machineJsonO = new JsonObject(machineJson);
-            Gson gson = new GsonBuilder().serializeNulls().create();
-            GsonMachine gsonMachine = gson.fromJson(machineJson, GsonMachine.class);
-
-            String machineTypeJson;
-            try {
-                HttpClient vmmClient = get_vmm_client();
-                Map<String, String> headers = get_vmm_client_headers();
-                machineTypeJson = vmmClient.get("machinetypes?id="+machineTypeId, headers).toString();
-            } catch (Exception e) {
-                logger.debug("getMachineTypes Exception: " + e.getMessage());
-                return new DaaasException(e.getMessage()).toResponse();
-            }
-            if (machineTypeJson.equals("null")) {
-                logger.info("Machine type " + machineTypeId + "not found, I have no idea how.");
-                throw new DaaasException("Machine type doesn't seem to exist any more.");
-            }
-
-            GsonMachineType[] gsonMachineTypes = gson.fromJson(machineTypeJson, GsonMachineType[].class);
-            GsonMachineType gsonMachineType = gsonMachineTypes[0];
-            logger.info("machineJson: " + machineJson);
-            machine.setId(gsonMachine.get_id());
-            machine.setName(gsonMachineType.get_name());
-            machine.setHost(gsonMachine.get_hostname());
-            if(gsonMachine.get_state().equals("acquired")) {
-                machine.setState(MachinePool.STATE.ACQUIRED.name());
-            }
-            else {
-                throw new DaaasException("Machine not acquired.");
-            }
-            MachineType machineType = new MachineType();
-            machineType.setName(gsonMachineType.get_name());
-            machineType.setDescription(gsonMachineType.get_description());
-            machineType.setPoolSize(gsonMachineType.get_pool_size());
-            machineType.setImageId("Managed by VMM");
-            machineType.setFlavorId("Managed by VMM");
-            machineType.setAvailabilityZone("Managed by VMM");
-            machineType.setAquilonArchetype("aquilonArchetype");
-            machineType.setAquilonDomain("aquilonDomain");
-            machineType.setAquilonPersonality("aquilonPersonality");
-            machineType.setAquilonSandbox("aquilonSandbox");
-            machineType.setAquilonOSVersion("aquilonOSVersion");
-            machine.setMachineType(machineType);
-            database.persist(machineType);
-            database.persist(machine);
 
             logger.debug("createMachine: added MachineUser");
             MachineUser machineUser = new MachineUser();
@@ -636,9 +560,7 @@ public class UserResource {
             @QueryParam("icatUrl") String icatUrl,
             @QueryParam("sessionId") String sessionId) {
         try {
-            HttpClient vmmClient = get_vmm_client();
-            Map<String, String> headers = get_vmm_client_headers();
-            String machineTypes = vmmClient.get("machinetypes", headers).toString();
+            String machineTypes = vmmClient.get_machine_types_json();
             return Response.status(200).entity(machineTypes).build();
         } catch (Exception e) {
             logger.debug("getMachineTypes Exception: " + e.getMessage());
