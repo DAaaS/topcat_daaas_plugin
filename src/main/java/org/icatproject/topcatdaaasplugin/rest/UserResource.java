@@ -202,7 +202,7 @@ public class UserResource {
             String username = getUsername(icatUrl, sessionId);
             logger.info("User {} is attempting to delete a machine {}", username, id);
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
             if (machine == null) {
@@ -215,7 +215,8 @@ public class UserResource {
                 throw new DaaasException("You are not allowed to delete this machine.");
             }
 
-            machinePool.deleteMachine(machine, MachinePool.STATE.DELETED.name());
+            machine.setState(MachinePool.STATE.DELETED.name());
+            database.persist(machine);
 
             return machine.toResponse();
         } catch (DaaasException e) {
