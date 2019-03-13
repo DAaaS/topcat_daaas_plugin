@@ -39,9 +39,6 @@ public class Machine extends Entity {
     @Column(name = "NAME", nullable = false)
     private String name;
 
-    @Column(name = "STATE", nullable = false)
-    private String state;
-
     @Column(name = "HOST")
     private String host;
 
@@ -52,10 +49,6 @@ public class Machine extends Entity {
     @Column(name = "CREATED_AT")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MACHINE_TYPE_ID")
-    private MachineType machineType;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "machine", orphanRemoval = true)
     private List<MachineUser> machineUsers;
@@ -74,14 +67,6 @@ public class Machine extends Entity {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
     }
 
     public String getHost() {
@@ -123,14 +108,6 @@ public class Machine extends Entity {
         this.createdAt = createdAt;
     }
 
-    public MachineType getMachineType() {
-        return machineType;
-    }
-
-    public void setMachineType(MachineType machineType) {
-        this.machineType = machineType;
-    }
-
     public EntityList<MachineUser> getMachineUsers() {
         EntityList<MachineUser> out = new EntityList<MachineUser>();
         for (MachineUser machineUser : machineUsers) {
@@ -156,7 +133,6 @@ public class Machine extends Entity {
         JsonObjectBuilder out = Json.createObjectBuilder();
         out.add("id", getId());
         out.add("name", getName());
-        out.add("state", getState());
         out.add("host", getHost());
         out.add("screenshotMd5", getScreenshotMd5());
         if (getCreatedAt() != null) {

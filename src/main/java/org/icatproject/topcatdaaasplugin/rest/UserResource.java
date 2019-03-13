@@ -4,8 +4,6 @@ import org.icatproject.topcatdaaasplugin.*;
 import org.icatproject.topcatdaaasplugin.vmm.VmmClient;
 import org.icatproject.topcatdaaasplugin.database.Database;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
-import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
-import org.icatproject.topcatdaaasplugin.database.entities.MachineTypeScope;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineUser;
 import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.slf4j.Logger;
@@ -63,7 +61,7 @@ public class UserResource {
 
             Map<String, Object> params = new HashMap<>();
             params.put("user", username);
-            EntityList<Entity> machine_list = database.query("select machine from MachineUser machineUser, machineUser.machine as machine where machineUser.userName = :user and machine.state = 'ACQUIRED'", params);
+            EntityList<Entity> machine_list = database.query("select machine from MachineUser machineUser, machineUser.machine as machine where machineUser.userName = :user", params);
             for (Entity e : machine_list) {
                 Machine machine = (Machine) e;
                 for (MachineUser mu : machine.getMachineUsers()) {
@@ -92,14 +90,7 @@ public class UserResource {
         logger.info("A user is attempting to create a machine,  machineTypeId = " + machineTypeId);
 
         try {
-            if (!isMachineTypeAllowed(icatUrl, sessionId, machineTypeId)) {
-                throw new DaaasException("You are not allowed to create this machine type.");
-            }
             Machine machine = vmmClient.acquire_machine(machineTypeId);
-            MachineType machineType = vmmClient.get_machine_type(machineTypeId);
-            machine.setName(machineType.getName());
-            machine.setMachineType(machineType);
-            database.persist(machineType);
             database.persist(machine);
 
 
@@ -211,7 +202,7 @@ public class UserResource {
                 throw new DaaasException("You are not allowed to delete this machine.");
             }
 
-            machine.setState(MachinePool.STATE.DELETED.name());
+            database.query("delete from Machine where machine.id = :id", params);
             database.persist(machine);
             vmmClient.delete_machine(id);
 
@@ -570,51 +561,8 @@ public class UserResource {
     @Path("/machineTypes/{id}/logo")
     public Response getMachineTypeLogo(
             @PathParam("id") Integer id) {
-        try {
-            MachineType machineType = (MachineType) database.query("select machineType from MachineType machineType where machineType.id = " + id).get(0);
-
-            return Response.ok(machineType.getLogoData(), machineType.getLogoMimeType()).build();
-        } catch (DaaasException e) {
-            logger.debug("getMachineTypeLogo DaaasException: " + e.getMessage());
-            return e.toResponse();
-        } catch (Exception e) {
-            logger.debug("getMachineTypeLogo Exception: " + e.getMessage());
-            return new DaaasException(e.getMessage()).toResponse();
-        }
-    }
-
-    private boolean isMachineTypeAllowed(String icatUrl, String sessionId, Long machineTypeId) throws Exception {
-        /*for (MachineType machineType : getAvailableMachineTypes(icatUrl, sessionId)) {
-            if (machineType.getId().equals(machineTypeId)) {
-                return true;
-            }
-        }
-        return false;*/
-        return true;
-    }
-
-    private EntityList<MachineType> getAvailableMachineTypes(String icatUrl, String sessionId) throws Exception {
-        EntityList<MachineType> out = new EntityList<MachineType>();
-        IcatClient icatClient = new IcatClient(icatUrl, sessionId);
-        for (Entity machineTypeEntity : database.query("SELECT mt FROM MachineType mt ORDER BY mt.name ASC")) {
-            MachineType machineType = (MachineType) machineTypeEntity;
-
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("MachineTypeId", machineType.getId());
-            params.put("state", MachinePool.STATE.VACANT.name());
-
-            int available = database.query("select machine from Machine machine, machine.machineType as machineType where machineType.id = :MachineTypeId and machine.state = :state", params).size();
-
-            machineType.setAquilonDomain(Integer.toString(available));
-
-            for (MachineTypeScope machineTypeScope : machineType.getMachineTypeScopes()) {
-                if (icatClient.query(machineTypeScope.getQuery()).size() > 0) {
-                    out.add(machineType);
-                    break;
-                }
-            }
-        }
-        return out;
+        //TODO Get machine type logo from VMM?
+        return null;
     }
 
     private String getUsername(String icatUrl, String sessionId) throws Exception {

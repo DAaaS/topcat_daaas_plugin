@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.ejb.*;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 
 
 @ConcurrencyManagement(ConcurrencyManagementType.BEAN)
@@ -18,10 +16,6 @@ import java.util.Map;
 public class MachinePool {
 
     private static final Logger logger = LoggerFactory.getLogger(MachinePool.class);
-
-    public enum STATE {
-        VACANT, PREPARING, ACQUIRED, FAILED, DELETED
-    }
 
     @EJB
     Database database;
@@ -35,9 +29,7 @@ public class MachinePool {
     public void getScreenShots() {
         try {
             logger.debug("Running screenshot");
-            Map<String, Object> params = new HashMap<>();
-            params.put("state", STATE.ACQUIRED.name());
-            EntityList<Entity> acquiredMachines = database.query("select machine from Machine machine where machine.state = :state", params);
+            EntityList<Entity> acquiredMachines = database.query("select machine from Machine machine");
             for (Entity machineEntity : acquiredMachines) {
                 Machine machine = (Machine) machineEntity;
                 machine.setScreenshot(Base64.getMimeDecoder().decode(new SshClient(machine.getHost()).exec("get_screenshot")));

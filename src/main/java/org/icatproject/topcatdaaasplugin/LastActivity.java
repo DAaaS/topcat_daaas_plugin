@@ -25,10 +25,6 @@ public class LastActivity {
     @EJB
     Database database;
 
-    public enum STATE {
-        VACANT, PREPARING, ACQUIRED, FAILED, DELETED
-    }
-
     @Schedule(hour = "*", minute = "*/15")
     public void lastActivity() {
         logger.info("Running last activity check");
@@ -37,9 +33,7 @@ public class LastActivity {
         long deleteTime = Long.parseLong(properties.getProperty("time_to_delete"));
 
         try {
-            Map<String, Object> params = new HashMap<>();
-            params.put("state", STATE.ACQUIRED.name());
-            EntityList<Entity> machines = database.query("select machine from Machine machine where machine.state = :state", params);
+            EntityList<Entity> machines = database.query("select machine from Machine machine");
     
             for (Entity machineEntity : machines) {
                 try {
@@ -73,7 +67,9 @@ public class LastActivity {
                         } catch (Exception e) {
                             throw new UnexpectedException(e.getMessage());
                         }
-                        machine.setState(STATE.DELETED.name());
+                        Map<String, Object> params = new HashMap<>();
+                        params.put("id", machine.getId());
+                        database.query("delete from Machine where machine.id = :id", params);
                         database.persist(machine);
                     }
                 } catch (Exception e) {

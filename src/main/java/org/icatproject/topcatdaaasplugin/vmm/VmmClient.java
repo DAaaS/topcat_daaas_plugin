@@ -2,10 +2,8 @@ package org.icatproject.topcatdaaasplugin.vmm;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.icatproject.topcatdaaasplugin.MachinePool;
 import org.icatproject.topcatdaaasplugin.Properties;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
-import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
 import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.icatproject.topcatdaaasplugin.httpclient.HttpClient;
 import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachine;
@@ -38,7 +36,7 @@ public class VmmClient {
         return headers;
     }
 
-    public MachineType get_machine_type(long machineTypeId) throws DaaasException {
+    public GsonMachineType get_machine_type(long machineTypeId) throws DaaasException {
         String machineTypeJson;
         try {
             machineTypeJson = httpClient.get("machinetypes?id="+machineTypeId, clientHeaders).toString();
@@ -52,19 +50,7 @@ public class VmmClient {
         }
 
         GsonMachineType gsonMachineType = gson.fromJson(machineTypeJson, GsonMachineType[].class)[0];
-        MachineType machineType = new MachineType();
-        machineType.setName(gsonMachineType.get_name());
-        machineType.setDescription(gsonMachineType.get_description());
-        machineType.setPoolSize(gsonMachineType.get_pool_size());
-        machineType.setImageId("Managed by VMM");
-        machineType.setFlavorId("Managed by VMM");
-        machineType.setAvailabilityZone("Managed by VMM");
-        machineType.setAquilonArchetype("aquilonArchetype");
-        machineType.setAquilonDomain("aquilonDomain");
-        machineType.setAquilonPersonality("aquilonPersonality");
-        machineType.setAquilonSandbox("aquilonSandbox");
-        machineType.setAquilonOSVersion("aquilonOSVersion");
-        return machineType;
+        return gsonMachineType;
     }
 
     public Machine acquire_machine(long machineTypeId) throws DaaasException {
@@ -85,10 +71,7 @@ public class VmmClient {
         Machine machine = new Machine();
         machine.setId(Integer.toString(gsonMachine.get_id()));
         machine.setHost(gsonMachine.get_hostname());
-        if(gsonMachine.get_state().equals("acquired")) {
-            machine.setState(MachinePool.STATE.ACQUIRED.name());
-        }
-        else {
+        if(!gsonMachine.get_state().equals("acquired")) {
             throw new DaaasException("Machine not acquired.");
         }
         return machine;
