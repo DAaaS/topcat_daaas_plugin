@@ -56,7 +56,7 @@ public class VmmClient {
     public Machine acquire_machine(long machineTypeId) throws DaaasException {
         String machineJson;
         try {
-            String params = "{\"machine_type_id\": \"" + machineTypeId + "\"}";
+            String params = "{\"machine_type_id\": " + machineTypeId + "}";
             // This request will return "null" when there are no machines available, otherwise json machine
             machineJson = httpClient.post("machines", clientHeaders, params).toString();
         } catch (Exception e) {
