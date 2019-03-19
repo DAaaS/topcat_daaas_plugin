@@ -95,10 +95,6 @@ public class UserResource {
             if (!isMachineTypeAllowed(icatUrl, sessionId, machineTypeId)) {
                 throw new DaaasException("You are not allowed to create this machine type.");
             }
-            Machine machine = machinePool.acquireMachine(machineTypeId);
-            if (machine == null) {
-                throw new DaaasException("No more machines of this type are available - please try again later.");
-            }
 
             String userName = getUsername(icatUrl, sessionId);
 
@@ -136,6 +132,11 @@ public class UserResource {
             }
 
             logger.debug("createMachine: the fed id is " + fedId);
+
+            Machine machine = machinePool.acquireMachine(machineTypeId);
+            if (machine == null) {
+                throw new DaaasException("No more machines of this type are available - please try again later.");
+            }
 
             logger.debug("createMachine: added MachineUser");
             MachineUser machineUser = new MachineUser();
