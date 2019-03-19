@@ -10,6 +10,7 @@ import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.namespace.QName;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
@@ -31,6 +32,11 @@ import java.util.HashMap;
 import java.util.Date;
 import java.util.UUID;
 import java.util.Base64;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import com.stfc.useroffice.webservice.*;
 
 
 @Stateless
@@ -104,9 +110,19 @@ public class UserResource {
             String fedId = "";
             if(uoc_b) {
                 logger.debug("resolving federal ID from User Office ID");
-                com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
-                com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
-                fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
+
+                URL uoUrl = null;
+                try {
+                    uoUrl = new URL(properties.getProperty("uourl"));
+                } catch (MalformedURLException e) {
+                    logger.error("Invalid userOfficeURL in run.properties", e);
+                }
+
+                UserOfficeWebService_Service service = new UserOfficeWebService_Service(uoUrl, new QName(properties.getProperty("uowebserviceurl"), properties.getProperty("uowebserviceextension")));
+                UserOfficeWebService port = service.getUserOfficeWebServicePort();
+                PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
+                fedId = personDetails.getFedId();
+
                 if (fedId == null || fedId.equals("") || userName.replace("uows/", "").equals(fedId)) {
                     throw new DaaasException("Your ISIS User Office account is not linked to your Federal ID. Please contact support@analysis.stfc.ac.uk and ask for your accounts to be linked.");
                 }
@@ -432,10 +448,18 @@ public class UserResource {
 
             SshClient sshClient = new SshClient(machine.getHost());
 
+
             Properties properties = new Properties();
             String uoc = properties.getProperty("uoc");
-            com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
-            com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
+            URL uoUrl = null;
+            try {
+                uoUrl = new URL(properties.getProperty("uourl"));
+            } catch (MalformedURLException e) {
+                logger.error("Invalid userOfficeURL in run.properties", e);
+            }
+            UserOfficeWebService_Service service = new UserOfficeWebService_Service(uoUrl, new QName(properties.getProperty("uowebserviceurl"), properties.getProperty("uowebserviceextension")));
+            UserOfficeWebService port = service.getUserOfficeWebServicePort();
+
 
             for (MachineUser machineUser : machine.getMachineUsers()) {
                 if (machineUser.getType().equals("PRIMARY")) {
@@ -462,7 +486,8 @@ public class UserResource {
                     String fedId = "";
                     if(Boolean.parseBoolean(uoc)) {
                         logger.debug("resolving federal ID from User Office ID");
-                        fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
+                        PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
+                        fedId = personDetails.getFedId();
                     } else {
                         String[] split = userName.split("/");
                         if (split.length == 2) {
@@ -493,7 +518,8 @@ public class UserResource {
                 }
 
                 if (isRemoved) {
-                    String fedId = port.getFedIdFromUserId(machineUser.getUserName().replace("uows/", ""));
+                    PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), machineUser.getUserName().replace("uows/", ""));
+                    String fedId = personDetails.getFedId();
                     sshClient.exec("remove_secondary_user " + fedId);
                     sshClient.exec("remove_websockify_token " + machineUser.getWebsockifyToken());
                 }

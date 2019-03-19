@@ -33,5 +33,11 @@ time_to_delete 12000
 # Get username via UserOffice
 uoc True
 
-# openstack security group
-security_group default
+# openstack security group (comma separated)
+security_groups default
+
+# UO information
+uourl https://uo.url/uo?WSDL
+uowebserviceurl http://webservice.url/
+uowebserviceextension UserOfficeWebService
+uokey key
