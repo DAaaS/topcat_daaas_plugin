@@ -36,7 +36,7 @@ public class VmmClient {
         return headers;
     }
 
-    public GsonMachineType get_machine_type(long machineTypeId) throws DaaasException {
+    private GsonMachineType get_machine_type(long machineTypeId) throws DaaasException {
         String machineTypeJson;
         try {
             machineTypeJson = httpClient.get("machinetypes?id="+machineTypeId, clientHeaders).toString();
@@ -69,7 +69,8 @@ public class VmmClient {
         }
         GsonMachine gsonMachine = gson.fromJson(machineJson, GsonMachine.class);
         Machine machine = new Machine();
-        machine.setName("Archimedes");
+        String machineTypeName = get_machine_type(machineTypeId).get_name();
+        machine.setName(machineTypeName);
         machine.setId(Integer.toString(gsonMachine.get_id()));
         machine.setHost(gsonMachine.get_hostname());
         if(!gsonMachine.get_state().equals("acquired")) {
