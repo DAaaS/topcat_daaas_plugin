@@ -61,6 +61,7 @@
 							<packageName>com.stfc.useroffice.webservice</packageName>
 							<vmArgs>
 								<vmArg>-Djavax.xml.accessExternalSchema=all</vmArg>
+								<vmArg>-Djavax.net.ssl.trustStore=${basedir}/uo.jks</vmArg>
 							</vmArgs>
 							<wsdlUrls>
 								<wsdlLocation>https://fitbaweb1.isis.cclrc.ac.uk:8443/UserOfficeWebService/UserOfficeWebService?WSDL</wsdlLocation>
