@@ -90,10 +90,6 @@ public class UserResource {
         logger.info("A user is attempting to create a machine,  machineTypeId = " + machineTypeId);
 
         try {
-            Machine machine = vmmClient.acquire_machine(machineTypeId);
-            database.persist(machine);
-
-
             String userName = getUsername(icatUrl, sessionId);
 
             logger.debug("createMachine: the userName is " + userName);
@@ -130,8 +126,10 @@ public class UserResource {
             }
 
             logger.debug("createMachine: the fed id is " + fedId);
+            Machine machine = vmmClient.acquire_machine(machineTypeId);
+            database.persist(machine);
 
-            logger.debug("createMachine: added MachineUser");
+            logger.debug("createMachine: adding MachineUser");
             MachineUser machineUser = new MachineUser();
             machineUser.setUserName(userName);
             machineUser.setType("PRIMARY");
@@ -192,6 +190,7 @@ public class UserResource {
             Map<String, Object> params = new HashMap<>();
             params.put("id", id);
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
+            logger.debug("Found machine {} (for deletion), details: {}", id, machine);
             if (machine == null) {
                 logger.error("Machine {} not found", id);
                 throw new DaaasException("Machine not found");
@@ -202,8 +201,7 @@ public class UserResource {
                 throw new DaaasException("You are not allowed to delete this machine.");
             }
 
-            database.query("delete from Machine where machine.id = :id", params);
-            database.persist(machine);
+            database.remove(machine);
             vmmClient.delete_machine(id);
 
             return machine.toResponse();

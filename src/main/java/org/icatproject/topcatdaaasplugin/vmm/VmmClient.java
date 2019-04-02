@@ -69,6 +69,7 @@ public class VmmClient {
         }
         GsonMachine gsonMachine = gson.fromJson(machineJson, GsonMachine.class);
         Machine machine = new Machine();
+        machine.setName("Archimedes");
         machine.setId(Integer.toString(gsonMachine.get_id()));
         machine.setHost(gsonMachine.get_hostname());
         if(!gsonMachine.get_state().equals("acquired")) {
