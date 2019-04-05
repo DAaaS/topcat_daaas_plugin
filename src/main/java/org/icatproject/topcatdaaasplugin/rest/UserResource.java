@@ -146,16 +146,14 @@ public class UserResource {
             logger.debug("createMachine: add_websockify_token " + machineUser.getWebsockifyToken());
             sshClient.exec("add_websockify_token " + machineUser.getWebsockifyToken());
 
+            String group = vmmClient.get_machine_type(machineTypeId).get_group();
             /*
                 This really needs to be abstracted out into a config file.
             */
-            /*Map<String, Object> params = new HashMap<String, Object>();
-            params.put("machineTypeId", machineTypeId);
-            MachineType machineType = (MachineType) database.query("select machineType from MachineType machineType WHERE machineType.id = :machineTypeId", params).get(0);
-            if ("daaas-isis-excitations".equals(machineType.getAquilonPersonality())) {
+            if ("excitations".equals(group)) {
                 logger.debug("createMachine: custom excitations " + machineUser.getWebsockifyToken());
                 sshClient.exec("custom excitations " + fedId + " " + sessionId);
-            }*/
+            }
 
             machine.setScreenshot(Base64.getMimeDecoder().decode(sshClient.exec("get_screenshot")));
             machine.setCreatedAt(new Date());

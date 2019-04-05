@@ -7,6 +7,7 @@ public class GsonMachineType {
     private String description;
     private int pool_size;
     private String name;
+    private GsonMachineTypeParameters parameters;
 
     GsonMachineType() {
         // no-args constructor
@@ -20,5 +21,20 @@ public class GsonMachineType {
     }
     public int get_pool_size() {
         return pool_size;
+    }
+    public String get_group() {
+        return parameters.get_group();
+    }
+}
+
+class GsonMachineTypeParameters {
+    private String group;
+
+    GsonMachineTypeParameters() {
+        // no-args constructor
+    }
+
+    public String get_group() {
+        return group;
     }
 }

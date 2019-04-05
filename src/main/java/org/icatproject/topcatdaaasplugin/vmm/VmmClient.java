@@ -36,7 +36,7 @@ public class VmmClient {
         return headers;
     }
 
-    private GsonMachineType get_machine_type(long machineTypeId) throws DaaasException {
+    public GsonMachineType get_machine_type(long machineTypeId) throws DaaasException {
         String machineTypeJson;
         try {
             machineTypeJson = httpClient.get("machinetypes?id="+machineTypeId, clientHeaders).toString();
