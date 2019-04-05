@@ -8,6 +8,20 @@
             <div class="form-group">
                 <div class="machine-types" take-up-remaining-height>
 
+                    <div class="row" ng-if="createMachineController.machineTypes.length == 0">
+                        <div class="col-sm-6 col-sm-push-3">
+                            <div class="alert alert-info">
+                                <b>Welcome</b>
+                                <br><br>
+                                It looks like we are having trouble listing analysis environment types.
+                                <br><br>
+                                Please try again in a few minutes. If the problem persists, send an email to the support team.
+                                <br><br>
+                                See the <a href="/#/help"><b>Help</b></a> pages for more information.
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="machine" ng-class="{selected: createMachineController.machineTypeId == machineType.id}" ng-repeat="machineType in createMachineController.machineTypes">
                         <div class="radio">
                             <input type="radio" name="machineType" ng-model="createMachineController.machineTypeId" ng-value="machineType.id" required>
