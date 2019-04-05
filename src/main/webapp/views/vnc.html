@@ -87,7 +87,7 @@
                 daaas.machines().then(function(machines){
                     _.each(machines, function(machine){
                         if(machine.id == id){
-                            var port = 29876;
+                            var port = 443;
                             var user = _.select(machine.users, function(user){ return user.userName == username})[0]
                             var path = "websockify?token=" + _.select(machine.users, function(user){ return user.userName == username})[0].websockifyToken;
                             noVnc.connect(machine.host, port, '', path);
