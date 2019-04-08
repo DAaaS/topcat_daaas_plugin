@@ -150,7 +150,7 @@ public class UserResource {
             /*
                 This really needs to be abstracted out into a config file.
             */
-            if ("excitations".equals(group)) {
+            if ("excitations".equals(group) || "wish".equals(group)) {
                 logger.debug("createMachine: custom excitations " + machineUser.getWebsockifyToken());
                 sshClient.exec("custom excitations " + fedId + " " + sessionId);
             }
