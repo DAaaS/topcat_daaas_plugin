@@ -69,7 +69,7 @@ public class LastActivity {
                         }
                         Map<String, Object> params = new HashMap<>();
                         params.put("id", machine.getId());
-                        database.query("delete from Machine where machine.id = :id", params);
+                        database.remove(machine);
                         database.persist(machine);
                     }
                 } catch (Exception e) {
