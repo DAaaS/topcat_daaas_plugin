@@ -115,6 +115,11 @@ public class UserResource {
                 UserOfficeWebService_Service service = new UserOfficeWebService_Service(uoUrl, new QName(properties.getProperty("uowebserviceurl"), properties.getProperty("uowebserviceextension")));
                 UserOfficeWebService port = service.getUserOfficeWebServicePort();
                 PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
+                if (personDetails == null) {
+                    throw new DaaasException("It looks like you don't have a user office account." +
+                            "Please email us at support@analysis.stfc.ac.uk if you need help creating one and linking it to your federal id." +
+                            "If you think this is a mistake, email us anyway.");
+                }
                 fedId = personDetails.getFedId();
 
                 if (fedId == null || fedId.equals("") || userName.replace("uows/", "").equals(fedId)) {
@@ -565,7 +570,6 @@ public class UserResource {
         try {
             GsonMachineDescription machineDescription = gson.fromJson(vmmClient.get_machine_description_json(id), GsonMachineDescription.class);
 
-            logger.info("get_logo(): "+ machineDescription.get_logo());
             return Response.ok(Base64.getDecoder().decode(machineDescription.get_logo())).build();
         } catch (DaaasException e) {
             logger.debug("getMachineTypeLogo DaaasException: " + e.getMessage());
