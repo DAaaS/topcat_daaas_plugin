@@ -1,6 +1,9 @@
 package org.icatproject.topcatdaaasplugin.rest;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.icatproject.topcatdaaasplugin.*;
+import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachineDescription;
 import org.icatproject.topcatdaaasplugin.vmm.VmmClient;
 import org.icatproject.topcatdaaasplugin.database.Database;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
@@ -49,6 +52,7 @@ public class UserResource {
     Database database;
 
     private VmmClient vmmClient = new VmmClient();
+    private Gson gson = new GsonBuilder().serializeNulls().create();
 
     @GET
     @Path("/machines")
@@ -555,10 +559,21 @@ public class UserResource {
 
     @GET
     @Path("/machineTypes/{id}/logo")
+    @Produces({"image/png"})
     public Response getMachineTypeLogo(
             @PathParam("id") Integer id) {
-        //TODO Get machine type logo from VMM?
-        return null;
+        try {
+            GsonMachineDescription machineDescription = gson.fromJson(vmmClient.get_machine_description_json(id), GsonMachineDescription.class);
+
+            logger.info("get_logo(): "+ machineDescription.get_logo());
+            return Response.ok(Base64.getDecoder().decode(machineDescription.get_logo())).build();
+        } catch (DaaasException e) {
+            logger.debug("getMachineTypeLogo DaaasException: " + e.getMessage());
+            return e.toResponse();
+        } catch (Exception e) {
+            logger.debug("getMachineTypeLogo Exception: " + e.getMessage());
+            return new DaaasException(e.getMessage()).toResponse();
+        }
     }
 
     private String getUsername(String icatUrl, String sessionId) throws Exception {

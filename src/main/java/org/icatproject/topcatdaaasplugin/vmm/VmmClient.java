@@ -49,8 +49,7 @@ public class VmmClient {
             throw new DaaasException("Machine type doesn't seem to exist any more.");
         }
 
-        GsonMachineType gsonMachineType = gson.fromJson(machineTypeJson, GsonMachineType[].class)[0];
-        return gsonMachineType;
+        return gson.fromJson(machineTypeJson, GsonMachineType[].class)[0];
     }
 
     public Machine acquire_machine(long machineTypeId) throws DaaasException {
@@ -96,5 +95,9 @@ public class VmmClient {
             logger.info("Could not delete machine with ID: " + id + ".");
             throw new DaaasException("Could not delete machine with ID: " + id + ".");
         }
+    }
+
+    public String get_machine_description_json(int machine_description_id) throws Exception {
+        return httpClient.get("descriptions?id=" + machine_description_id, clientHeaders).toString();
     }
 }
