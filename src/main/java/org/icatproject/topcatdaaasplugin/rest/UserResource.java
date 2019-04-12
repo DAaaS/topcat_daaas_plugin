@@ -12,6 +12,7 @@ import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.CacheControl;
 import javax.xml.namespace.QName;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
@@ -570,7 +571,11 @@ public class UserResource {
         try {
             GsonMachineDescription machineDescription = gson.fromJson(vmmClient.get_machine_description_json(id), GsonMachineDescription.class);
 
-            return Response.ok(Base64.getDecoder().decode(machineDescription.get_logo())).build();
+            CacheControl cacheControl = new CacheControl();
+            cacheControl.setNoStore(false);
+            cacheControl.setNoCache(false);
+            cacheControl.setMaxAge(604800);
+            return Response.ok(Base64.getDecoder().decode(machineDescription.get_logo())).cacheControl(cacheControl).build();
         } catch (DaaasException e) {
             logger.debug("getMachineTypeLogo DaaasException: " + e.getMessage());
             return e.toResponse();
