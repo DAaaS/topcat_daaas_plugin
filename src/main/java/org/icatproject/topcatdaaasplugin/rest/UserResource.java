@@ -1,21 +1,22 @@
 package org.icatproject.topcatdaaasplugin.rest;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.icatproject.topcatdaaasplugin.*;
+import org.icatproject.topcatdaaasplugin.jsonHandler.GsonMachineDescription;
+import org.icatproject.topcatdaaasplugin.vmm.VmmClient;
 import org.icatproject.topcatdaaasplugin.database.Database;
 import org.icatproject.topcatdaaasplugin.database.entities.Machine;
-import org.icatproject.topcatdaaasplugin.database.entities.MachineType;
-import org.icatproject.topcatdaaasplugin.database.entities.MachineTypeScope;
 import org.icatproject.topcatdaaasplugin.database.entities.MachineUser;
 import org.icatproject.topcatdaaasplugin.exceptions.DaaasException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.CacheControl;
 import javax.xml.namespace.QName;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
-import javax.json.JsonObject;
-import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -27,6 +28,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Date;
@@ -49,8 +52,8 @@ public class UserResource {
     @EJB
     Database database;
 
-    @EJB
-    MachinePool machinePool;
+    private VmmClient vmmClient = new VmmClient();
+    private Gson gson = new GsonBuilder().serializeNulls().create();
 
     @GET
     @Path("/machines")
@@ -61,9 +64,9 @@ public class UserResource {
         try {
             String username = getUsername(icatUrl, sessionId);
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("user", username);
-            EntityList<Entity> machine_list = database.query("select machine from MachineUser machineUser, machineUser.machine as machine where machineUser.userName = :user and machine.state = 'ACQUIRED'", params);
+            EntityList<Entity> machine_list = database.query("select machine from MachineUser machineUser, machineUser.machine as machine where machineUser.userName = :user", params);
             for (Entity e : machine_list) {
                 Machine machine = (Machine) e;
                 for (MachineUser mu : machine.getMachineUsers()) {
@@ -92,10 +95,6 @@ public class UserResource {
         logger.info("A user is attempting to create a machine,  machineTypeId = " + machineTypeId);
 
         try {
-            if (!isMachineTypeAllowed(icatUrl, sessionId, machineTypeId)) {
-                throw new DaaasException("You are not allowed to create this machine type.");
-            }
-
             String userName = getUsername(icatUrl, sessionId);
 
             logger.debug("createMachine: the userName is " + userName);
@@ -103,7 +102,7 @@ public class UserResource {
             Properties properties = new Properties();
             String uoc = properties.getProperty("uoc");
             boolean uoc_b = Boolean.parseBoolean(uoc);
-            String fedId = "";
+            String fedId;
             if(uoc_b) {
                 logger.debug("resolving federal ID from User Office ID");
 
@@ -117,6 +116,11 @@ public class UserResource {
                 UserOfficeWebService_Service service = new UserOfficeWebService_Service(uoUrl, new QName(properties.getProperty("uowebserviceurl"), properties.getProperty("uowebserviceextension")));
                 UserOfficeWebService port = service.getUserOfficeWebServicePort();
                 PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
+                if (personDetails == null) {
+                    throw new DaaasException("It looks like you don't have a user office account." +
+                            "Please email us at support@analysis.stfc.ac.uk if you need help creating one and linking it to your federal id." +
+                            "If you think this is a mistake, email us anyway.");
+                }
                 fedId = personDetails.getFedId();
 
                 if (fedId == null || fedId.equals("") || userName.replace("uows/", "").equals(fedId)) {
@@ -132,13 +136,10 @@ public class UserResource {
             }
 
             logger.debug("createMachine: the fed id is " + fedId);
+            Machine machine = vmmClient.acquire_machine(machineTypeId);
+            database.persist(machine);
 
-            Machine machine = machinePool.acquireMachine(machineTypeId);
-            if (machine == null) {
-                throw new DaaasException("No more machines of this type are available - please try again later.");
-            }
-
-            logger.debug("createMachine: added MachineUser");
+            logger.debug("createMachine: adding MachineUser");
             MachineUser machineUser = new MachineUser();
             machineUser.setUserName(userName);
             machineUser.setType("PRIMARY");
@@ -155,13 +156,11 @@ public class UserResource {
             logger.debug("createMachine: add_websockify_token " + machineUser.getWebsockifyToken());
             sshClient.exec("add_websockify_token " + machineUser.getWebsockifyToken());
 
+            String group = vmmClient.get_machine_type(machineTypeId).get_group();
             /*
                 This really needs to be abstracted out into a config file.
             */
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("machineTypeId", machineTypeId);
-            MachineType machineType = (MachineType) database.query("select machineType from MachineType machineType WHERE machineType.id = :machineTypeId", params).get(0);
-            if ("daaas-isis-excitations".equals(machineType.getAquilonPersonality())) {
+            if ("excitations".equals(group) || "wish".equals(group)) {
                 logger.debug("createMachine: custom excitations " + machineUser.getWebsockifyToken());
                 sshClient.exec("custom excitations " + fedId + " " + sessionId);
             }
@@ -177,7 +176,10 @@ public class UserResource {
             logger.error("createMachine DaaasException: " + e.getMessage());
             return e.toResponse();
         } catch (Exception e) {
-            logger.error("createMachine Exception: " + e.getMessage());
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            logger.error("createMachine Exception: " + e.toString() + "\nException message: " + e.getMessage() + "\nStackTrace: " + sw.toString());
             return new DaaasException(e.getMessage()).toResponse();
         }
     }
@@ -193,9 +195,10 @@ public class UserResource {
             String username = getUsername(icatUrl, sessionId);
             logger.info("User {} is attempting to delete a machine {}", username, id);
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
+            logger.debug("Found machine {} (for deletion), details: {}", id, machine);
             if (machine == null) {
                 logger.error("Machine {} not found", id);
                 throw new DaaasException("Machine not found");
@@ -206,7 +209,8 @@ public class UserResource {
                 throw new DaaasException("You are not allowed to delete this machine.");
             }
 
-            machinePool.deleteMachine(machine, MachinePool.STATE.DELETED.name());
+            database.remove(machine);
+            vmmClient.delete_machine(id);
 
             return machine.toResponse();
         } catch (DaaasException e) {
@@ -229,7 +233,7 @@ public class UserResource {
         logger.info("A user is attempting to save a machine setting it's name to '" + name + "', id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -267,7 +271,7 @@ public class UserResource {
         //logger.info("A user is attempting to set the width/height of a machine with id to " + width + "x" + height + ", id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -304,7 +308,7 @@ public class UserResource {
             @QueryParam("icatUrl") String icatUrl,
             @QueryParam("sessionId") String sessionId) {
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -350,7 +354,7 @@ public class UserResource {
         logger.info("A user is attempting to get an rdp file, id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -433,7 +437,7 @@ public class UserResource {
         logger.info("A user is attempting to share a machine, id = " + id);
 
         try {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("id", id);
 
             Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
@@ -445,7 +449,7 @@ public class UserResource {
             }
 
             String[] userNamesList = userNames.split("\\s*,\\s*");
-            EntityList<MachineUser> newMachineUsers = new EntityList<MachineUser>();
+            EntityList<MachineUser> newMachineUsers = new EntityList<>();
 
             SshClient sshClient = new SshClient(machine.getHost());
 
@@ -484,7 +488,7 @@ public class UserResource {
                 }
 
                 if (!isExistingUser) {
-                    String fedId = "";
+                    String fedId;
                     if(Boolean.parseBoolean(uoc)) {
                         logger.debug("resolving federal ID from User Office ID");
                         PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
@@ -551,10 +555,8 @@ public class UserResource {
             @QueryParam("icatUrl") String icatUrl,
             @QueryParam("sessionId") String sessionId) {
         try {
-            return getAvailableMachineTypes(icatUrl, sessionId).toResponse();
-        } catch (DaaasException e) {
-            logger.debug("getMachineTypes DaaasException: " + e.getMessage());
-            return e.toResponse();
+            String machineTypes = vmmClient.get_machine_types_json();
+            return Response.status(200).entity(machineTypes).build();
         } catch (Exception e) {
             logger.debug("getMachineTypes Exception: " + e.getMessage());
             return new DaaasException(e.getMessage()).toResponse();
@@ -563,12 +565,17 @@ public class UserResource {
 
     @GET
     @Path("/machineTypes/{id}/logo")
+    @Produces({"image/png"})
     public Response getMachineTypeLogo(
             @PathParam("id") Integer id) {
         try {
-            MachineType machineType = (MachineType) database.query("select machineType from MachineType machineType where machineType.id = " + id).get(0);
+            GsonMachineDescription machineDescription = gson.fromJson(vmmClient.get_machine_description_json(id), GsonMachineDescription.class);
 
-            return Response.ok(machineType.getLogoData(), machineType.getLogoMimeType()).build();
+            CacheControl cacheControl = new CacheControl();
+            cacheControl.setNoStore(false);
+            cacheControl.setNoCache(false);
+            cacheControl.setMaxAge(604800);
+            return Response.ok(Base64.getDecoder().decode(machineDescription.get_logo())).cacheControl(cacheControl).build();
         } catch (DaaasException e) {
             logger.debug("getMachineTypeLogo DaaasException: " + e.getMessage());
             return e.toResponse();
@@ -576,39 +583,6 @@ public class UserResource {
             logger.debug("getMachineTypeLogo Exception: " + e.getMessage());
             return new DaaasException(e.getMessage()).toResponse();
         }
-    }
-
-    private boolean isMachineTypeAllowed(String icatUrl, String sessionId, Long machineTypeId) throws Exception {
-        for (MachineType machineType : getAvailableMachineTypes(icatUrl, sessionId)) {
-            if (machineType.getId().equals(machineTypeId)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private EntityList<MachineType> getAvailableMachineTypes(String icatUrl, String sessionId) throws Exception {
-        EntityList<MachineType> out = new EntityList<MachineType>();
-        IcatClient icatClient = new IcatClient(icatUrl, sessionId);
-        for (Entity machineTypeEntity : database.query("SELECT mt FROM MachineType mt ORDER BY mt.name ASC")) {
-            MachineType machineType = (MachineType) machineTypeEntity;
-
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("MachineTypeId", machineType.getId());
-            params.put("state", MachinePool.STATE.VACANT.name());
-
-            int available = database.query("select machine from Machine machine, machine.machineType as machineType where machineType.id = :MachineTypeId and machine.state = :state", params).size();
-
-            machineType.setAquilonDomain(Integer.toString(available));
-
-            for (MachineTypeScope machineTypeScope : machineType.getMachineTypeScopes()) {
-                if (icatClient.query(machineTypeScope.getQuery()).size() > 0) {
-                    out.add(machineType);
-                    break;
-                }
-            }
-        }
-        return out;
     }
 
     private String getUsername(String icatUrl, String sessionId) throws Exception {

@@ -8,10 +8,7 @@ registerTopcatPlugin(function(pluginUrl){
 			}],
 			pluginUrl + 'scripts/controllers/create-machine.js',
 			pluginUrl + 'scripts/controllers/my-machines.js',
-			pluginUrl + 'scripts/controllers/admin-machine-types.js',
 			pluginUrl + 'scripts/controllers/admin-machines.js',
-			pluginUrl + 'scripts/controllers/admin-create-machine-type.js',
-			pluginUrl + 'scripts/controllers/admin-edit-machine-type.js',
 			pluginUrl + 'scripts/controllers/share-machine.js',
 
 			pluginUrl + 'scripts/directives/file-upload.js',
@@ -59,14 +56,8 @@ registerTopcatPlugin(function(pluginUrl){
 				multiFacility: true
 			});
 
-			tc.ui().registerAdminTab('machine-types', pluginUrl + 'views/admin-machine-types.html', {
-				insertAfter: 'downloads',
-				controller: 'AdminMachineTypesController as adminMachineTypesController',
-				multiFacility: true
-			});
-
 			tc.ui().registerAdminTab('machines', pluginUrl + 'views/admin-machines.html', {
-				insertAfter: 'machine-types',
+				insertAfter: 'downloads',
 				controller: 'AdminMachinesController as adminMachinesController',
 				multiFacility: true
 			});
@@ -75,13 +66,13 @@ registerTopcatPlugin(function(pluginUrl){
 
 		login: function(){
 			//'this' is the facility
-			//potentually register tabs etc
+			//potentially register tabs etc
 			//can return promise
 		},
 
 		logout: function(){
 			//'this' is the facility
-			//potentually un register tabs etc
+			//potentially un register tabs etc
 			//can return promise
 		}
 

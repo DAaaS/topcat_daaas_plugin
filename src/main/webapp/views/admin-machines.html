@@ -3,16 +3,6 @@
 <div class="container-fluid text-center">
 	<form class="form-inline">
 	  <div class="form-group">
-	    <label>State</label>
-	    <select class="form-control" ng-model="adminMachinesController.state" ng-change="adminMachinesController.update()">
-	 		<option value="any">Any</option>
-	 		<option value="ACQUIRED">Acquired</option>
-	 		<option value="FAILED">Failed</option>
-	 		<option value="PREPARING">Preparing</option>
-	 		<option value="VACANT">Vacant</option>
-	 	</select>
-	 </div>
-	  <div class="form-group">
 	    <label>Host</label>
 	    <input type="text" class="form-control" ng-model="adminMachinesController.host" ng-change="adminMachinesController.update()">
 	  </div>
@@ -27,13 +17,7 @@
 				<div class="main">
 					<div class="info">
 						<div class="title">
-							<del ng-if="machine.state != 'VACANT' && machine.state != 'ACQUIRED' && machine.state != 'PREPARING'">{{machine.name}}</del>
-							<span ng-if="machine.state == 'VACANT' || machine.state == 'ACQUIRED' || machine.state == 'PREPARING'">{{machine.name}}</span>
-						</div>
-
-						<div class="field">
-							<label>State:</label>
-							<div>{{machine.state}}</div>
+							<span>{{machine.name}}</span>
 						</div>
 						<div class="field">
 							<label>Host:</label>

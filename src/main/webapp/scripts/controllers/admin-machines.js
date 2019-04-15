@@ -27,11 +27,6 @@
         daaas.machines(timeout.promise, [
           "where 1 = 1",
           function(){
-            if(that.state != 'any'){
-              return ["and machine.state like concat(?, '%') ", that.state];
-            }
-          },
-          function(){
             if(that.host != ''){
               return ["and machine.host like concat('%', ?, '%') ", that.host];
             }
