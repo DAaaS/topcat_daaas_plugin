@@ -1,0 +1,319 @@
+import KeyTable from "/topcat_daaas_plugin/bower_components/noVNC/core/input/keysym.js";
+
+// RFB holds the API to connect and communicate with a VNC server
+import RFB from '/topcat_daaas_plugin/bower_components/noVNC/core/rfb.js';
+
+let rfb;
+let desktopName;
+
+// When this function is called we have
+// successfully connected to a server
+function connectedToServer(e) {
+    var str = desktopName.substring(0,20) + desktopName.substring(22, desktopName.length);
+    console.log(desktopName);
+}
+
+// This function is called when we are disconnected
+function disconnectedFromServer(e) {
+    $("#reconnect").show();
+}
+
+// When this function is called we have received
+// a desktop name from the server
+function updateDesktopName(e) {
+    desktopName = e.detail.name;
+}
+
+
+function connect() {
+    // Creating a new RFB object will start a new connection
+    rfb = new RFB(document.getElementById('screen'), window.connection_url,{ credentials: { password: "" } });
+    if (window.allowresize){
+        rfb.resizeSession = true;
+        rfb.background = 'rgb(255,255,255)';
+    }
+    
+    
+    $("#reconnect").hide();
+    
+    rfb.addEventListener("connect",  connectedToServer);
+    rfb.addEventListener("disconnect", disconnectedFromServer);
+    rfb.addEventListener("desktopname", updateDesktopName);
+}
+
+function reconnect() {
+    // Directly calling connect() with reconnect click breaks the top box
+    // So just refresh the page to attempt reconnect
+    location.reload();
+    
+}
+
+// Establish first connection
+connect();
+
+// Add listeners to important events from the RFB module
+
+$("#reconnect_but").on('click', reconnect);
+$(document).ready(function(){
+    var combotype = 0;
+    var remoteHighlight = ""; 
+    rfb.addEventListener("connect",  loadCanvasClipboardControls);
+    
+    function loadCanvasClipboardControls(){
+        rfb.addEventListener("clipboard", clipboardReceive);
+        rfb.clipboardPasteFrom("");
+        lock();
+        setTimeout(unlock,1);
+        var ctrlDown = false,
+        shiftDown = false,
+        ctrlKey = 17,
+        shiftKey = 16,
+        insertKey = 45,
+        cmdKey = 91,
+        vKey = 86,
+        cKey = 67;
+        
+        $("canvas").keydown(function(e) {
+            if (e.keyCode == ctrlKey || e.keyCode == cmdKey) ctrlDown = true;
+            if (e.keyCode == shiftKey) shiftDown = true;
+        }).keyup(function(e) {
+            if (e.keyCode == ctrlKey || e.keyCode == cmdKey) ctrlDown = false;
+            if (e.keyCode == shiftKey) shiftDown = false;
+        });
+        
+        $(".no-copy-paste").keydown(function(e) {
+            if (ctrlDown && (e.keyCode == vKey || e.keyCode == cKey)) return false;
+        });
+        
+        // Document Ctrl + C/V
+        $("canvas").keydown(function(e) {            
+            //Paste Combos
+            if (ctrlDown && shiftDown && (e.keyCode == vKey)){
+                lock();
+                combotype = 2;
+                console.log("Document catch Ctrl+Shift+V");
+                unlock();
+            } 
+            else if (ctrlDown && (e.keyCode == vKey)){
+                lock();
+                combotype = 1;
+                console.log("Document catch Ctrl+V");
+                unlock();
+            }
+            if (shiftDown && (e.keyCode == insertKey)){
+                lock();
+                combotype = 3;
+                console.log("Document catch Shift+Insert");
+                unlock();
+            }
+            //Copy Combos
+            if (ctrlDown && shiftDown && (e.keyCode == cKey)){
+                console.log("Document catch Ctrl+Shift+C");
+                copyStringToClipboard(remoteHighlight);
+            }
+            else if (ctrlDown && (e.keyCode == cKey)) {
+                console.log("Document catch Ctrl+C");
+                copyStringToClipboard(remoteHighlight);
+            }
+            
+            
+        });
+        
+        
+        
+    }
+    
+    $(window).bind("paste", function(e){
+        // access the clipboard using the api
+        unlock();
+        var str = e.originalEvent.clipboardData.getData('text');
+        console.log(str);            
+        rfb.clipboardPasteFrom(str);
+        switch (combotype) {
+            case 1:
+            sendCtrlV();
+            break;
+            
+            case 2:
+            sendCtrlShiftV();
+            break;
+            
+            case 3:
+            sendShiftInsert();
+            break;
+            
+            default:
+            break;
+        }  
+        e.preventDefault();
+    });
+        
+    function lock(){
+        console.log("lock");
+        rfb.viewOnly = 1;
+    }
+    
+    function unlock(){
+        if (rfb.viewOnly == 1){
+            console.log("unlock");
+            rfb.viewOnly = 0;            
+        }
+    }
+    
+    function sendCtrlV(){
+        console.log("sending ctrl+v");
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
+        rfb.sendKey(KeyTable.XK_v, "v");
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);
+        
+    }
+    
+    function sendCtrlShiftV(){
+        console.log("sending ctrl+shift+v");
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
+        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", true);
+        rfb.sendKey(KeyTable.XK_Insert, "Insert");
+        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);
+        
+    }
+    
+    function sendShiftInsert(){
+        console.log("sending shift+insert");
+        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", true);
+        rfb.sendKey(KeyTable.XK_Insert, "Insert");
+        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);
+        
+    }
+    
+    function clipboardReceive(e){
+        remoteHighlight = e.detail.text;
+    }
+    
+    function copyStringToClipboard (str) {
+        // Create new element
+        // Create new element
+        var el = document.createElement('textarea');
+        // Set value (string to be copied)
+        el.value = str;
+        // Set non-editable to avoid focus and move outside of view
+        el.setAttribute('readonly', '');
+        el.style = {position: 'absolute', left: '-9999px'};
+        document.body.appendChild(el);
+        // Select text inside element
+        el.select();
+        // Copy text to clipboard
+        document.execCommand('copy');
+        // Remove temporary element
+        document.body.removeChild(el);
+        
+    }
+    
+    rfb.addEventListener("connect",  onConnected);
+    function onConnected(){
+        $("canvas").on('mousemove', mousemove);
+        $(document.body).on('mousemove', mousemove);
+        $("#fullscreen_but").on('click', fullscreenClicked);
+        $("#copy_box").on('click', copy_boxClicked);
+        rfb.addEventListener("clipboard", clipboardReceive);
+        
+        var topBar = $("#top_bar");
+        
+        function mousemove(e){
+            var width = $(document.body).width();
+            //additions and subtractions from bounds are for padding
+            var yBound = $("#top_bar").height() + 10;
+            var leftBound = (width / 3) - 5;
+            var rightBound = (width - (width / 3) + 5);
+            if ($("#copy_bar").hasClass('slide')){
+                leftBound = 0;
+            }
+            if ($("#paste_bar").hasClass('slide')){
+                rightBound = width;
+            }
+            
+            if(e.pageY < 10 && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
+                $(topBar).addClass('show');
+                $("#paste_bar").addClass('show');
+                $("#copy_bar").addClass('show');
+            } else if($(topBar).hasClass('show') && (e.pageY > yBound)){
+                $(topBar).removeClass('show'); 
+                $("#copy_bar").removeClass('show');
+                $("#paste_bar").removeClass('show');
+                
+            } else if (e.pageX <= leftBound || e.pageX > rightBound){
+                $(topBar).removeClass('show'); 
+                $("#copy_bar").removeClass('show');
+                $("#paste_bar").removeClass('show');
+            }  
+        }
+        
+        $("#copy_show").on('click', copyShowClicked);
+        $("#paste_show").on('click', pasteShowClicked);
+        $("#paste_but").on('click', pasteClicked);
+        
+        function copyShowClicked(){
+            if ($("#copy_bar").hasClass('slide')){
+                $("#copy_bar").removeClass('slide');
+            } else {
+                $("#copy_bar").addClass('slide');
+            }
+            
+        }
+        
+        function pasteShowClicked(){
+            if ($("#paste_bar").hasClass('slide')){
+                $("#paste_bar").removeClass('slide');
+            } else {
+                $("#paste_bar").addClass('slide');
+            }
+        }
+        
+        function copy_boxClicked(){
+            $("#copy_box").select();
+        }
+        
+        function clipboardReceive(e){
+            $("#copy_box").val(e.detail.text);
+            
+        }
+        
+        function pasteClicked(){
+            var str = $("#paste_box").val();
+            rfb.disconnect();
+            rfb.clipboardPasteFrom(str);
+            sendShiftInsert();
+        }
+        
+        function fullscreenClicked(){
+            var elem = document.documentElement;
+            if (!($("#fullscreen_but").hasClass("true"))){
+                $("#fullscreen_but").addClass("true");
+                $("#fullscreen_but").text("Exit Fullscreen");
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.mozRequestFullScreen) { /* Firefox */
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                    elem.msRequestFullscreen();
+                }
+            } else {
+                $("#fullscreen_but").removeClass("true");
+                $("#fullscreen_but").text("Fullscreen");
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { /* Firefox */
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { /* IE/Edge */
+                    document.msExitFullscreen();
+                }
+            }
+        }
+        
+    }
+});
+

@@ -1,215 +1,261 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <style>
-            html, body, .clip {
-                top: 0px;
-                left: 0px;
-                margin: 0px;
-                padding: 0px;
-                height: 100%;
-                width: 100%;
-                box-sizing: border-box;
-                overflow: hidden;
-                position: absolute;
-                background: #FFFFFF;
-            }
-
-            canvas {
-                position: absolute;
-                border: 0;
-                outline-style: none;
-                box-shadow: none;
-                border-color: transparent;
-            }
-
-            .full-screen-bar {
-                position: absolute;
-                height: 25px;
-                top: -75px;
-                width: 100%;
-                padding: 7px;
-                margin: 0px auto 0px auto;
-                z-index: 100;
-                text-align: center;
-                transition: all 0.5s;
-            }
-
-            .full-screen-bar.show {
-                top: 0px;
-            }
-
-            .full-screen-bar button {
-                height: 100%;
-                width: 33%;
-            }
-
-            .exit-full-screen { display: none; }
-            .request-full-screen { display: initial; }
-
-            body.fullscreen .exit-full-screen { display: initial; }
-            body.fullscreen .request-full-screen { display: none; }
+<html lang="en">
+<head>
+    <title>noVNC</title>
+    
+    <meta charset="utf-8">
+    
+    <style>
+        
+        body {
+            margin: 0;
+            background-color: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        html {
+            height: 100%;
+        }
+        
+        button {
+            border-radius: 6px;
             
-        </style>
-        <script src="/topcat_daaas_plugin/bower_components/jquery/dist/jquery.js"></script>
-        <script src="/topcat_daaas_plugin/bower_components/jquery-no-vnc/dist/jquery-no-vnc.js"></script>
-    </head>
-
-    <body>
-        <div class="full-screen-bar show">
-            <button class="request-full-screen">Full Screen</button>
-            <button class="exit-full-screen">Exit Full Screen</button>
-        </div>
-        <div class="clip">
-            <canvas></canvas>
-        </div>
-
-        <script>
-            (function(tc, _){
-                var params = {};
-                _.each(window.location.search.replace('?', '').split(/&/), function(pair){
-                    pair = pair.split(/=/);
-                    params[pair[0]] = decodeURIComponent(pair[1]); 
-                });
-                var canvas = $(document.body).find('canvas');
-                var noVnc =  $(canvas).noVnc();
-                var id = params.id;
-                var facilityName = params.facilityName;
-                var facility = tc.facility(facilityName);
-                var icat = facility.icat();
-                var user = facility.user();
-                var daaas = user.daaas();
-                var username = tc.icat(facilityName).session().username;
-                var icatUrl = facility.config().icatUrl;
-                var sessionId = icat.session().sessionId;
-
-
-                daaas.machines().then(function(machines){
-                    _.each(machines, function(machine){
-                        if(machine.id == id){
-                            var port = 29876;
-                            var user = _.select(machine.users, function(user){ return user.userName == username})[0]
-                            var path = "websockify?token=" + _.select(machine.users, function(user){ return user.userName == username})[0].websockifyToken;
-                            noVnc.connect(machine.host, port, '', path);
-                            $(canvas).on('novnc:loaded', resize);
-                            $(canvas).focus();
-                            $(window).on('resize', resize);
-
-                            document.title = machine.host;
-
-                            var resizingCounter = 0;
-                            function resize(){
-                                console.log('resize');
-                                if(user.type == 'PRIMARY'){
-                                    if(resizingCounter == 0){
-
-                                        var host = window.location.host;
-                                        if(host == 'localhost:10080'){
-                                            host = 'localhost:8181';
-                                        }
-                                        var url = "https://" + host + "/topcat_daaas_plugin/api/user/machines/" + machine.id + "/resolution";
-                    
-                                        console.log(url, params);
-
-                                        $.ajax({
-                                            url: url,
-                                            method: 'POST',
-                                            data: {
-                                                icatUrl: icatUrl,
-                                                sessionId: sessionId,
-                                                width: document.body.clientWidth,
-                                                height: document.body.clientHeight
-                                            },
-                                            headers: {
-                                                'Content-Type': 'application/x-www-form-urlencoded'
-                                            },
-                                            success: function(){
-                                                if(resizingCounter > 1){
-                                                    resizingCounter = 0;
-                                                    resize();
-                                                }
-                                                resizingCounter = 0;
-                                            }
-                                        })
-
-                                        machine.setResolution(document.body.clientWidth, document.body.clientHeight).then(function(){
-                                            if(resizingCounter > 1){
-                                                resizingCounter = 0;
-                                                resize();
-                                            }
-                                            resizingCounter = 0;
-                                        });
-                                    }
-                                    resizingCounter++;
-                                } else {
-                                    noVnc.resize(document.body.clientWidth, document.body.clientHeight);
-                                }
-                            }
+        }
+        #top_bar button{
+            padding:7px;
+        }
+        button:focus {
+            outline:0;
+        }
+        
+        .top_bar {
+            /* top: -75px;
+            background-color: #6e84a3;
+            color: white;
+            font: bold 12px Helvetica;
+            padding: 6px 5px 4px 5px;
+            border-bottom: 1px outset; */
+            border-radius: 0px 0px 15px 15px;
+            border:1px solid #555;
+            background-color: rgb(241, 243, 244);
+            color: black;
+            font: bold 12px Helvetica;
+            position: absolute;
+            top: -75px;
+            width: 33%; 
+            padding: 5px;
+            margin: 0px auto 0px auto;
+            margin-left: 33%;
+            z-index: 100;
+            text-align: center;
+            transition: all 0.5s;
+        }
+        
+        #copy_bar {
+            display: flex;
+            justify-content: space-around;
+            z-index: 99;
+        }
+        
+        #paste_bar {
+            display: flex;
+            justify-content: space-around;
+            z-index: 99;
+        }
+        
+        #copy_bar.slide {
+            margin-left: 0%;
+            margin-right: 66%;
+        }
+        
+        #paste_bar.slide {
+            margin-left: 66%;
+            margin-right: 0%;
+        }
+        
+        
+        #status {
+            text-align: center;
+        }
+        
+        #screen {
+            flex: 1; /* fill remaining space */
+            overflow: hidden;
+            background:white;
+        }
+        #reconnect {
+            background: white;
+            width: 50%;
+            max-width: 530px;
+            margin: auto;
+            margin-top: 46vh;
+            justify-content: space-around;
+            display: flex;
+            padding: 20px;
+            border-radius: 3px;
+        }
+        .top_bar.show {
+            top:0px;
+        }
+        
+    </style>
+    
+    <!-- The following is all CSS for tooltips  -->
+    <style>
+        /* Tooltip container */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        /* Tooltip text */
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            padding: 5px 0;
+            border-radius: 6px;
+            
+            /* Position the tooltip text */
+            position: absolute;
+            z-index: 1;
+            bottom: -300%;
+            left: 50%;
+            margin-left: -60px;
+            
+            /* Fade in tooltip */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        /* Tooltip arrow */
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: -25%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+            -moz-transform: scale(1, -1);
+            -webkit-transform: scale(1, -1);
+            -o-transform: scale(1, -1);
+            -ms-transform: scale(1, -1);
+            transform: scale(1, -1);
+        }
+        
+        /* Show the tooltip text when you mouse over the tooltip container */
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+    </style>
+    
+    <!-- Promise polyfill for IE11 -->
+    <script src="/topcat_daaas_plugin/bower_components/noVNC/vendor/promise.js"></script>
+    
+    <!-- ES2015/ES6 modules polyfill -->
+    <script type="module">
+        window._noVNC_has_module_support = true;
+    </script>
+    <script>
+        window.addEventListener("load", function() {
+            if (window._noVNC_has_module_support) return;
+            const loader = document.createElement("script");
+            loader.src = "noVNC/vendor/browser-es-module-loader/dist/" +
+            "browser-es-module-loader.js";
+            document.head.appendChild(loader);
+        });
+    </script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script>
+        (function(tc, _){
+            var params = {};
+            _.each(window.location.search.replace('?', '').split(/&/), function(pair){
+                pair = pair.split(/=/);
+                params[pair[0]] = decodeURIComponent(pair[1]); 
+            });
+            var screen = $(document.body).find('screen');
+            var id = params.id;
+            var facilityName = params.facilityName;
+            var facility = tc.facility(facilityName);
+            var icat = facility.icat();
+            var user = facility.user();
+            var daaas = user.daaas();
+            var username = tc.icat(facilityName).session().username;
+            var icatUrl = facility.config().icatUrl;
+            var sessionId = icat.session().sessionId;
+            
+            
+            daaas.machines().then(function(machines){
+                _.each(machines, function(machine){
+                    if(machine.id == id){
+                        var port = 29876;
+                        var user = _.select(machine.users, function(user){ return user.userName == username})[0]
+                        var path = "websockify?token=" + _.select(machine.users, function(user){ return user.userName == username})[0].websockifyToken;
+                        document.title = machine.host;
+                        window.connection_url = "wss://" + machine.host + ":" + port + "/" + path;
+                        if(user.type == 'PRIMARY'){
+                            window.allowresize = true;
                         }
-                    });
-                });
-
-                var fullScreenBar = $('.full-screen-bar')
-
-                function mousemove(e){
-                    var width = $(document.body).width();
-                    if(e.pageY < 16 && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
-                        $(fullScreenBar).addClass('show');
-                    } else if($(fullScreenBar).hasClass('show') && e.pageY > $(fullScreenBar).height() && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
-                        $(fullScreenBar).removeClass('show');
-                    }
-                }
-
-                $(canvas).on('mousemove', mousemove);
-                $(document.body).on('mousemove', mousemove);
-
-                $('.request-full-screen').on('click', function(){
-                    var element = document.body;
-                    if (element.requestFullscreen) {
-                      element.requestFullscreen();
-                    } else if (element.mozRequestFullScreen) {
-                      element.mozRequestFullScreen();
-                    } else if (element.webkitRequestFullscreen) {
-                      element.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-                    } else if (element.msRequestFullscreen) {
-                      element.msRequestFullscreen();
+                        
                     }
                 });
+            });
+            
+            
+        })(window.opener.tc, window.opener._);
+    </script>
+    
+    <!-- actual script modules -->
+    <script type="module" src="/topcat_daaas_plugin/scripts/custom.js"></script>
+    
+</head>
 
-                $('.exit-full-screen').on('click', function(){
-                    if (document.exitFullscreen) {
-                      document.exitFullscreen();
-                    } else if (document.mozCancelFullScreen) {
-                      document.mozCancelFullScreen();
-                    } else if (document.webkitExitFullscreen) {
-                      document.webkitExitFullscreen();
-                    } else if (document.msExitFullscreen) {
-                      document.msExitFullscreen();
-                    }
-                });
-
-
-                var isFullScreenMode = document.fullScreen || document.mozFullScreen || document.webkitIsFullScreen;
-
-                $(document).on ('mozfullscreenchange webkitfullscreenchange fullscreenchange',function(){
-                    isFullScreenMode= !isFullScreenMode;
-                    if(isFullScreenMode){
-                        $(document.body).addClass('fullscreen');
-                    } else {
-                        $(document.body).removeClass('fullscreen');
-                    }
-                });
-
-                if(user.type != 'PRIMARY'){
-                    window.setInterval(function(){
-                        $(canvas).css({
-                            top: ($(window).height() / 2) - ($(canvas).height() / 2),
-                            left: ($(window).width() / 2) - ($(canvas).width() / 2)
-                        });
-                    }, 100);
-                }
-
-            })(window.opener.tc, window.opener._);
-        </script>
-    </body>
+<body>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    
+    <div id="copy_bar" class="top_bar">
+        <div style="padding:3px;">Copy This:</div>
+        <input type="text" id="copy_box" style="flex-grow: 1; margin-right: 7px; margin-left: 5px;" placeholder="Highlight text and it will appear here."readonly>
+    </div>
+    <div id="top_bar" class="top_bar">
+        <div style="display: flex; justify-content: space-between;">
+            <div id="copy_div">
+                <button class="tooltip" type="button" id="copy_show" ><i class="fa fa-copy"></i>
+                    <span class="tooltiptext">Show/Hide Copy Menu</span>
+                </button>
+            </div>
+            <div>
+                <button type="button" id="fullscreen_but" >Fullscreen</button>
+            </div>
+            <div id="paste_div">
+                <button class="tooltip" type="button" id="paste_show" ><i class="fa fa-paste"></i>
+                    <span class="tooltiptext">Show/Hide Paste Menu</span>
+                </button>
+            </div>
+        </div>
+        
+    </div>
+    <div id="paste_bar" class="top_bar">
+        <input type="text" id="paste_box" style="flex-grow: 3; margin-right: 5px; margin-left: 7px;" placeholder="Paste your text here.">
+        <button type="button" id="paste_but" style="flex-grow:1;"><i class="fa fa-paste"></i>Paste</button>
+    </div>
+    
+    <div id="reconnect" style="display:none;background:rgb(212, 212, 212);">
+        <div style="padding:5px;">Your session is disconnected, click here to attempt reconnection</div>
+        <button type="button" id="reconnect_but" style="flex-grow:1; margin-left:5px;"><i class="fas fa-sync-alt"></i>Reconnect</button>
+    </div>
+    
+    
+    <div id="screen">
+        <!-- This is where the remote screen will appear -->
+    </div>
+</body>
 </html>
+

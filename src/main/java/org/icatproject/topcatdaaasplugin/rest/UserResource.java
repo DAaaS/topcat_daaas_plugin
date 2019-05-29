@@ -259,47 +259,6 @@ public class UserResource {
         }
     }
 
-    @POST
-    @Path("/machines/{id}/resolution")
-    @Produces({MediaType.APPLICATION_JSON})
-    public Response setMachineResolution(
-            @PathParam("id") String id,
-            @FormParam("icatUrl") String icatUrl,
-            @FormParam("sessionId") String sessionId,
-            @FormParam("width") int width,
-            @FormParam("height") int height) {
-        //logger.info("A user is attempting to set the width/height of a machine with id to " + width + "x" + height + ", id = " + id);
-
-        try {
-            Map<String, Object> params = new HashMap<>();
-            params.put("id", id);
-
-            Machine machine = (Machine) database.query("select machine from Machine machine where machine.id = :id", params).get(0);
-            if (machine == null) {
-                throw new DaaasException("No such machine.");
-            }
-            if (!machine.getPrimaryUser().getUserName().equals(getUsername(icatUrl, sessionId))) {
-                throw new DaaasException("You are not allowed to access this machine.");
-            }
-
-            new SshClient(machine.getHost()).exec("set_resolution " + width + " " + height);
-
-            //logger.debug("setMachineResolution: set_resolution " + width + " " + height);
-
-            return machine.toResponse();
-        } catch (DaaasException e) {
-            logger.debug("setMachineResolution DaaasException: " + e.getMessage());
-            return e.toResponse();
-        } catch (Exception e) {
-            String message = e.getMessage();
-            if (message == null) {
-                message = e.toString();
-            }
-            logger.debug("setMachineResolution Exception: " + message);
-            return new DaaasException(message).toResponse();
-        }
-    }
-
     @GET
     @Path("/machines/{id}/screenshot")
     @Produces("image/png")
