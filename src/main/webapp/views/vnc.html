@@ -30,12 +30,6 @@
         }
         
         .top_bar {
-            /* top: -75px;
-            background-color: #6e84a3;
-            color: white;
-            font: bold 12px Helvetica;
-            padding: 6px 5px 4px 5px;
-            border-bottom: 1px outset; */
             border-radius: 0px 0px 15px 15px;
             border:1px solid #555;
             background-color: rgb(241, 243, 244);
@@ -84,6 +78,7 @@
             overflow: hidden;
             background:white;
         }
+
         #reconnect {
             background: white;
             width: 50%;
@@ -95,6 +90,7 @@
             padding: 20px;
             border-radius: 3px;
         }
+        
         .top_bar.show {
             top:0px;
         }
@@ -180,17 +176,12 @@
                 pair = pair.split(/=/);
                 params[pair[0]] = decodeURIComponent(pair[1]); 
             });
-            var screen = $(document.body).find('screen');
             var id = params.id;
             var facilityName = params.facilityName;
             var facility = tc.facility(facilityName);
-            var icat = facility.icat();
             var user = facility.user();
             var daaas = user.daaas();
             var username = tc.icat(facilityName).session().username;
-            var icatUrl = facility.config().icatUrl;
-            var sessionId = icat.session().sessionId;
-            
             
             daaas.machines().then(function(machines){
                 _.each(machines, function(machine){
@@ -212,11 +203,11 @@
         })(window.opener.tc, window.opener._);
     </script>
     
-    <!-- actual script modules -->
+    <!-- custom script that connects to the machine via noVNC -->
     <script type="module" src="/topcat_daaas_plugin/scripts/custom.js"></script>
     
 </head>
-
+<!-- html for top bar and disconnected dialogue -->
 <body>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     
@@ -232,7 +223,7 @@
                 </button>
             </div>
             <div>
-                <button type="button" id="fullscreen_but" >Fullscreen</button>
+                <button type="button" id="fullscreen_but" ><i id="fullscreen_icon" class="fa fa-window-maximize"></i>Fullscreen</button>
             </div>
             <div id="paste_div">
                 <button class="tooltip" type="button" id="paste_show" ><i class="fa fa-paste"></i>
@@ -249,7 +240,7 @@
     
     <div id="reconnect" style="display:none;background:rgb(212, 212, 212);">
         <div style="padding:5px;">Your session is disconnected, click here to attempt reconnection</div>
-        <button type="button" id="reconnect_but" style="flex-grow:1; margin-left:5px;"><i class="fas fa-sync-alt"></i>Reconnect</button>
+        <button type="button" id="reconnect_but" style="flex-grow:1; margin-left:5px;"><i class="fa fa-refresh"></i>Reconnect</button>
     </div>
     
     
@@ -258,4 +249,3 @@
     </div>
 </body>
 </html>
-

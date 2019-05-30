@@ -3,14 +3,10 @@
 registerTopcatPlugin(function(pluginUrl){
 	return {
 		scripts: [
-			[pluginUrl + 'bower_components/jquery-no-vnc/dist/jquery-no-vnc.js', function(){
-				return $.fn.noVnc !== undefined;
-			}],
 			pluginUrl + 'scripts/controllers/create-machine.js',
 			pluginUrl + 'scripts/controllers/my-machines.js',
 			pluginUrl + 'scripts/controllers/admin-machines.js',
 			pluginUrl + 'scripts/controllers/share-machine.js',
-
 			pluginUrl + 'scripts/directives/file-upload.js',
 
 			pluginUrl + 'scripts/services/tc-admin-daaas.js',

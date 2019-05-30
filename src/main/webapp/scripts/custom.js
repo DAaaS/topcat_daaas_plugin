@@ -36,6 +36,7 @@ function connect() {
     
     $("#reconnect").hide();
     
+    // Add listeners to important events from the RFB module
     rfb.addEventListener("connect",  connectedToServer);
     rfb.addEventListener("disconnect", disconnectedFromServer);
     rfb.addEventListener("desktopname", updateDesktopName);
@@ -51,18 +52,29 @@ function reconnect() {
 // Establish first connection
 connect();
 
-// Add listeners to important events from the RFB module
-
 $("#reconnect_but").on('click', reconnect);
+
+// When the page is loaded, begin loading in clipboard controls 
 $(document).ready(function(){
     var combotype = 0;
     var remoteHighlight = ""; 
     rfb.addEventListener("connect",  loadCanvasClipboardControls);
-    
+
+    // The copy/paste using shortcut keys works as follows
+    // Listen for keypress events on ctrl, c, & v
+    // When it detects a combo that would initiate paste, make the noVNC read-only
+    // Making noVNC read-only means we can catch the onPaste event in the window
+    // Get the clipboard data, and send it to the machine
+    // Make noVNC read-write again
+    // Simulate whatever combo was initially detected, on the remote machine
     function loadCanvasClipboardControls(){
         rfb.addEventListener("clipboard", clipboardReceive);
         rfb.clipboardPasteFrom("");
+        // lock and unlock noVNC to "initalise" them
+        // Without these calls, the first paste always fails
         lock();
+        // setTimeout moves operation to end of queue of tasks
+        // this means that 1ms is sufficient
         setTimeout(unlock,1);
         var ctrlDown = false,
         shiftDown = false,
@@ -107,6 +119,7 @@ $(document).ready(function(){
                 unlock();
             }
             //Copy Combos
+            // Copy is simpler than paste, just call the copy method.
             if (ctrlDown && shiftDown && (e.keyCode == cKey)){
                 console.log("Document catch Ctrl+Shift+C");
                 copyStringToClipboard(remoteHighlight);
@@ -115,12 +128,7 @@ $(document).ready(function(){
                 console.log("Document catch Ctrl+C");
                 copyStringToClipboard(remoteHighlight);
             }
-            
-            
         });
-        
-        
-        
     }
     
     $(window).bind("paste", function(e){
@@ -147,7 +155,7 @@ $(document).ready(function(){
         }  
         e.preventDefault();
     });
-        
+    
     function lock(){
         console.log("lock");
         rfb.viewOnly = 1;
@@ -159,7 +167,9 @@ $(document).ready(function(){
             rfb.viewOnly = 0;            
         }
     }
-    
+
+    // Simulate Key Combinations
+
     function sendCtrlV(){
         console.log("sending ctrl+v");
         rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
@@ -186,12 +196,13 @@ $(document).ready(function(){
         
     }
     
+    // When text is highlighted on noVNC it calls this method
     function clipboardReceive(e){
         remoteHighlight = e.detail.text;
+        $("#copy_box").val(e.detail.text);
     }
     
     function copyStringToClipboard (str) {
-        // Create new element
         // Create new element
         var el = document.createElement('textarea');
         // Set value (string to be copied)
@@ -210,15 +221,15 @@ $(document).ready(function(){
     }
     
     rfb.addEventListener("connect",  onConnected);
+    // All this code is for the top bar and fullscreen
     function onConnected(){
         $("canvas").on('mousemove', mousemove);
         $(document.body).on('mousemove', mousemove);
         $("#fullscreen_but").on('click', fullscreenClicked);
         $("#copy_box").on('click', copy_boxClicked);
-        rfb.addEventListener("clipboard", clipboardReceive);
         
         var topBar = $("#top_bar");
-        
+        // listen for mouse move so you know when to show the topbar
         function mousemove(e){
             var width = $(document.body).width();
             //additions and subtractions from bounds are for padding
@@ -272,12 +283,7 @@ $(document).ready(function(){
         function copy_boxClicked(){
             $("#copy_box").select();
         }
-        
-        function clipboardReceive(e){
-            $("#copy_box").val(e.detail.text);
-            
-        }
-        
+                
         function pasteClicked(){
             var str = $("#paste_box").val();
             rfb.disconnect();
@@ -290,6 +296,8 @@ $(document).ready(function(){
             if (!($("#fullscreen_but").hasClass("true"))){
                 $("#fullscreen_but").addClass("true");
                 $("#fullscreen_but").text("Exit Fullscreen");
+                $("#fullscreen_icon").removeClass("fa-window-maximize");
+                $("#fullscreen_icon").addClass("fa-window-minimize");
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen();
                 } else if (elem.mozRequestFullScreen) { /* Firefox */
@@ -302,6 +310,8 @@ $(document).ready(function(){
             } else {
                 $("#fullscreen_but").removeClass("true");
                 $("#fullscreen_but").text("Fullscreen");
+                $("#fullscreen_icon").removeClass("fa-window-minimize");
+                $("#fullscreen_icon").addClass("fa-window-maximize");
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
                 } else if (document.mozCancelFullScreen) { /* Firefox */
