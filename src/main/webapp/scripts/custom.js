@@ -135,6 +135,7 @@ $(document).ready(function(){
         // access the clipboard using the api
         unlock();
         var str = e.originalEvent.clipboardData.getData('text');
+        $("#paste_box").val(str);
         console.log(str);            
         rfb.clipboardPasteFrom(str);
         switch (combotype) {
@@ -287,7 +288,6 @@ $(document).ready(function(){
         
         function pasteClicked(){
             var str = $("#paste_box").val();
-            rfb.disconnect();
             rfb.clipboardPasteFrom(str);
             sendShiftInsert();
         }
