@@ -59,7 +59,7 @@ $(document).ready(function(){
     var combotype = 0;
     var remoteHighlight = ""; 
     rfb.addEventListener("connect",  loadCanvasClipboardControls);
-
+    
     // The copy/paste using shortcut keys works as follows
     // Listen for keypress events on ctrl, c, & v
     // When it detects a combo that would initiate paste, make the noVNC read-only
@@ -167,9 +167,9 @@ $(document).ready(function(){
             rfb.viewOnly = 0;            
         }
     }
-
+    
     // Simulate Key Combinations
-
+    
     function sendCtrlV(){
         console.log("sending ctrl+v");
         rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
@@ -226,6 +226,7 @@ $(document).ready(function(){
         $("canvas").on('mousemove', mousemove);
         $(document.body).on('mousemove', mousemove);
         $("#fullscreen_but").on('click', fullscreenClicked);
+        $("#exit_fullscreen_but").on('click', exit_fullscreenClicked);
         $("#copy_box").on('click', copy_boxClicked);
         
         var topBar = $("#top_bar");
@@ -283,7 +284,7 @@ $(document).ready(function(){
         function copy_boxClicked(){
             $("#copy_box").select();
         }
-                
+        
         function pasteClicked(){
             var str = $("#paste_box").val();
             rfb.disconnect();
@@ -293,37 +294,34 @@ $(document).ready(function(){
         
         function fullscreenClicked(){
             var elem = document.documentElement;
-            if (!($("#fullscreen_but").hasClass("true"))){
-                $("#fullscreen_but").addClass("true");
-                $("#fullscreen_but").text("Exit Fullscreen");
-                $("#fullscreen_icon").removeClass("fa-window-maximize");
-                $("#fullscreen_icon").addClass("fa-window-minimize");
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen();
-                } else if (elem.mozRequestFullScreen) { /* Firefox */
-                    elem.mozRequestFullScreen();
-                } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
-                    elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) { /* IE/Edge */
-                    elem.msRequestFullscreen();
-                }
-            } else {
-                $("#fullscreen_but").removeClass("true");
-                $("#fullscreen_but").text("Fullscreen");
-                $("#fullscreen_icon").removeClass("fa-window-minimize");
-                $("#fullscreen_icon").addClass("fa-window-maximize");
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) { /* Firefox */
-                    document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) { /* IE/Edge */
-                    document.msExitFullscreen();
-                }
+            $("#fullscreen_but").hide();
+            $("#exit_fullscreen_but").show();
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.mozRequestFullScreen) { /* Firefox */
+                elem.mozRequestFullScreen();
+            } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                elem.msRequestFullscreen();
             }
         }
         
+        function exit_fullscreenClicked(){
+            $("#fullscreen_but").show();
+            $("#exit_fullscreen_but").hide();
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) { /* Firefox */
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE/Edge */
+                document.msExitFullscreen();
+            }
+        }
+
     }
+
 });
 
