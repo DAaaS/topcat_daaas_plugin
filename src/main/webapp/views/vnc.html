@@ -17,11 +17,21 @@
         html {
             height: 100%;
         }
+
+        input {
+            border-radius: 3px;
+            border-width: 1px;
+        }
         
         button {
             border-radius: 6px;
-            
+            background-color: white; 
+            color: black; 
+            border: 1px solid #454545;
+            -webkit-transition-duration: 0.4s; /* Safari */
+            transition-duration: 0.4s;            
         }
+                
         #top_bar button{
             padding:7px;
         }
@@ -29,8 +39,13 @@
             outline:0;
         }
         
+        button:hover {
+            background-color: #454545;
+            color: white;
+        }
+
         .top_bar {
-            border-radius: 0px 0px 15px 15px;
+            border-radius: 0px 0px 7px 7px;
             border:1px solid #555;
             background-color: rgb(241, 243, 244);
             color: black;
