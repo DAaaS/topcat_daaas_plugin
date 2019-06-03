@@ -128,6 +128,13 @@ $(document).ready(function(){
                 console.log("Document catch Ctrl+C");
                 copyStringToClipboard(remoteHighlight);
             }
+            
+            //Cut
+            if (ctrlDown && (e.keyCode == xKey)){
+                console.log("Document catch Ctrl+X");
+                copyStringToClipboard(remoteHighlight);
+            }
+            
         });
     }
     
