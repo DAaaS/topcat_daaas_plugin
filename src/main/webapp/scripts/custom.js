@@ -134,7 +134,8 @@ $(document).ready(function(){
                 console.log("Document catch Ctrl+X");
                 copyStringToClipboard(remoteHighlight);
             }
-            
+
+            $("canvas").focus();
         });
     }
     
@@ -160,7 +161,8 @@ $(document).ready(function(){
             
             default:
             break;
-        }  
+        }
+        $("canvas").focus();
         e.preventDefault();
     });
     
