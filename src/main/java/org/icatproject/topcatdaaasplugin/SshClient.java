@@ -19,9 +19,10 @@ public class SshClient {
         this.host = host;
     }
 
-    public String exec(String commandToRun) throws IOException, InterruptedException {
+public String exec(String commandToRun, boolean... awaitResponse) throws IOException, InterruptedException {
         //logger.trace("exec " + host + " :" + commandToRun);
-
+        //default to "True"
+        boolean awaitResponseflag = (awaitResponse.length >= 1) ? awaitResponse[0] : true;
 
         Properties properties = new Properties();
         String sshPrivateKeyFile = properties.getProperty("sshPrivateKeyFile");
@@ -43,19 +44,18 @@ public class SshClient {
         }
         logger.trace("Running command :" + cmdout);
 
-
         Process process = Runtime.getRuntime().exec(command);
 
         logger.trace("Finished running command");
-
-        String out = readInputStream(process.getInputStream());
-        String error = readInputStream(process.getErrorStream());
-
-        //logger.trace("Out-> " + out);
-        logger.trace("Error-> " + error);
-
-        //process.waitFor();
-
+        String out = "";
+        if (awaitResponseflag){
+            logger.debug("awaiting output");
+            out = readInputStream(process.getInputStream());
+            String error = readInputStream(process.getErrorStream());
+            logger.trace("Out-> " + out);
+            logger.trace("Error-> " + error);
+            process.waitFor();
+        }
 
         logger.trace("Returning...");
         return out;

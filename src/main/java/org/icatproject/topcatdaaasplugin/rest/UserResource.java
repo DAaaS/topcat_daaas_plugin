@@ -149,8 +149,9 @@ public class UserResource {
 
             SshClient sshClient = new SshClient(machine.getHost());
 
+            boolean awaitResponse = false;
             logger.debug("createMachine: add_primary_user " + fedId);
-            sshClient.exec("add_primary_user " + fedId);
+            sshClient.exec("add_primary_user " + fedId, awaitResponse);
             logger.debug("createMachine: add_primary_user completed" + fedId);
 
             logger.debug("createMachine: add_websockify_token " + machineUser.getWebsockifyToken());
