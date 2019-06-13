@@ -33,7 +33,10 @@
                             <div class="info">
                                 <div class="title">
                                     <span style="vertical-align:middle;">{{machineType.name}}</span>
-                                    <i style="font-size:small;vertical-align:middle;">[{{ machineType.number_available}} available]</i></div>
+                                    <i style="font-size:small;vertical-align:middle;">
+                                        <div ng-if="machineType.number_available==0">[ <b>No machines are available</b> ]</div>
+                                    </i>
+                                </div>
                                 <div class="description">
                                     {{machineType.description}}
                                 </div>

@@ -70,7 +70,6 @@ public class LastActivity {
                         Map<String, Object> params = new HashMap<>();
                         params.put("id", machine.getId());
                         database.remove(machine);
-                        database.persist(machine);
                     }
                 } catch (Exception e) {
                     logger.error("Something went wrong checking last activity: {}", e.getMessage());
