@@ -277,8 +277,10 @@ $(document).ready(function(){
         function copyShowClicked(){
             if ($("#copy_bar").hasClass('slide')){
                 $("#copy_bar").removeClass('slide');
+                $("#copy_bar").removeClass('visible')
             } else {
                 $("#copy_bar").addClass('slide');
+                $("#copy_bar").addClass('visible')
             }
             
         }
@@ -286,8 +288,10 @@ $(document).ready(function(){
         function pasteShowClicked(){
             if ($("#paste_bar").hasClass('slide')){
                 $("#paste_bar").removeClass('slide');
+                $("#paste_bar").removeClass('visible');
             } else {
                 $("#paste_bar").addClass('slide');
+                $("#paste_bar").addClass('visible');
             }
         }
         
