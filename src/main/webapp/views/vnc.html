@@ -60,16 +60,25 @@
             transition: all 0.5s;
         }
         
-        #copy_bar {
+       #copy_bar {
             display: flex;
             justify-content: space-around;
             z-index: 99;
+            visibility: hidden;
+            opacity: 0;
         }
         
         #paste_bar {
             display: flex;
             justify-content: space-around;
             z-index: 99;
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        .visible {
+            visibility: visible !important;
+            opacity: 1 !important;
         }
         
         .sub_bar {
