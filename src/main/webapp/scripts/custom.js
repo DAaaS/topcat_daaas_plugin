@@ -77,19 +77,23 @@ $(document).ready(function(){
         // this means that 1ms is sufficient
         setTimeout(unlock,1);
         var ctrlDown = false,
+        cmdDown = false,
         shiftDown = false,
         ctrlKey = 17,
         shiftKey = 16,
         insertKey = 45,
         cmdKey = 91,
         vKey = 86,
+        xKey = 88,
         cKey = 67;
         
         $("canvas").keydown(function(e) {
-            if (e.keyCode == ctrlKey || e.keyCode == cmdKey) ctrlDown = true;
+            if (e.keyCode == ctrlKey) ctrlDown = true;
+            if (e.keyCode == cmdKey) cmdDown = true;
             if (e.keyCode == shiftKey) shiftDown = true;
         }).keyup(function(e) {
-            if (e.keyCode == ctrlKey || e.keyCode == cmdKey) ctrlDown = false;
+            if (e.keyCode == ctrlKey) ctrlDown = false;
+            if (e.keyCode == cmdKey) cmdDown = false;
             if (e.keyCode == shiftKey) shiftDown = false;
         });
         
@@ -105,40 +109,56 @@ $(document).ready(function(){
                 combotype = 2;
                 console.log("Document catch Ctrl+Shift+V");
                 unlock();
+                return;
             } 
             else if (ctrlDown && (e.keyCode == vKey)){
                 lock();
                 combotype = 1;
                 console.log("Document catch Ctrl+V");
                 unlock();
+                return;
             }
             if (shiftDown && (e.keyCode == insertKey)){
                 lock();
                 combotype = 3;
                 console.log("Document catch Shift+Insert");
                 unlock();
+                return;
             }
             //Copy Combos
             // Copy is simpler than paste, just call the copy method.
             if (ctrlDown && shiftDown && (e.keyCode == cKey)){
                 console.log("Document catch Ctrl+Shift+C");
                 copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
             }
             else if (ctrlDown && (e.keyCode == cKey)) {
                 console.log("Document catch Ctrl+C");
                 copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
             }
             
             //Cut
             if (ctrlDown && (e.keyCode == xKey)){
                 console.log("Document catch Ctrl+X");
                 copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
             }
-
-            $("canvas").focus();
         });
+
+        // MAC copy paste using cmd
+        $("canvas").keydown(function(e) {});
     }
     
+
+    function macPaste(){
+        //$("#paste_box").focus();
+        //setTimeout(pasteClicked, 1);
+    }
+
     $(window).bind("paste", function(e){
         // access the clipboard using the api
         unlock();
@@ -228,6 +248,13 @@ $(document).ready(function(){
         // Remove temporary element
         document.body.removeChild(el);
         
+        $("canvas").focus();
+    }
+
+    function pasteClicked(){
+        var str = $("#paste_box").val();
+        rfb.clipboardPasteFrom(str);
+        sendShiftInsert();
     }
     
     rfb.addEventListener("connect",  onConnected);
@@ -299,11 +326,7 @@ $(document).ready(function(){
             $("#copy_box").select();
         }
         
-        function pasteClicked(){
-            var str = $("#paste_box").val();
-            rfb.clipboardPasteFrom(str);
-            sendShiftInsert();
-        }
+
         
         function fullscreenClicked(){
             var elem = document.documentElement;
@@ -337,4 +360,3 @@ $(document).ready(function(){
     }
 
 });
-
