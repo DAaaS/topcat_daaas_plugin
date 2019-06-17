@@ -99,6 +99,7 @@ $(document).ready(function(){
         
         $(".no-copy-paste").keydown(function(e) {
             if (ctrlDown && (e.keyCode == vKey || e.keyCode == cKey)) return false;
+            if (cmdDown && (e.keyCode == vKey || e.keyCode == cKey)) return false;
         });
         
         // Document Ctrl + C/V
@@ -150,17 +151,65 @@ $(document).ready(function(){
         });
 
         // MAC copy paste using cmd
-        $("canvas").keydown(function(e) {});
+        // prevent default doesn't seem to work on mac
+        // you have to lock unlock to stop vnc interaction
+        $("canvas").keydown(function(e) {
+            if (cmdDown && shiftDown && (e.keyCode == vKey)){
+                lock();
+                combotype = 2;
+                console.log("Document catch CMD+Shift+V");
+                unlock();
+                return;
+            } 
+            else if (cmdDown && (e.keyCode == vKey)){
+                lock();
+                combotype = 1;
+                console.log("Document catch CMD+V");
+                $("#paste_box").focus();
+                unlock();
+                return;
+            }
+            if (shiftDown && (e.keyCode == insertKey)){
+                lock();
+                combotype = 3;
+                console.log("Document catch Shift+Insert");
+                unlock();
+                return;
+            }
+            //Copy Combos
+            // Copy is simpler than paste, just call the copy method.
+            if (cmdDown && shiftDown && (e.keyCode == cKey)){
+                console.log("Document catch CMD+Shift+C");
+                lock();
+                copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
+            }
+            else if (cmdDown && (e.keyCode == cKey)) {
+                console.log("Document catch CMD+C");
+                lock();
+                copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
+            }
+            
+            //Cut
+            // because cmd X isn't a command on remote vnc we need to emulate cut
+            // it's emulated by doing a normal copy, then sending a cut key combo
+            if (cmdDown && (e.keyCode == xKey)){
+                console.log("Document catch Ctrl+X");
+                lock();
+                copyStringToClipboard(remoteHighlight);
+                unlock();
+                sendCtrlX();
+                return;
+            }
+        });
     }
     
-
-    function macPaste(){
-        //$("#paste_box").focus();
-        //setTimeout(pasteClicked, 1);
-    }
-
     $(window).bind("paste", function(e){
-        // access the clipboard using the api
+        // access the clipboard using the api        
+        e.preventDefault();
         unlock();
         var str = e.originalEvent.clipboardData.getData('text');
         $("#paste_box").val(str);
@@ -183,7 +232,6 @@ $(document).ready(function(){
             break;
         }
         $("canvas").focus();
-        e.preventDefault();
     });
     
     function lock(){
@@ -196,6 +244,8 @@ $(document).ready(function(){
             console.log("unlock");
             rfb.viewOnly = 0;            
         }
+        // MAC fix, prevents sticky CMD button
+        rfb.sendKey(KeyTable.XK_Meta_L, "MetaLeft");
     }
     
     // Simulate Key Combinations
@@ -204,8 +254,7 @@ $(document).ready(function(){
         console.log("sending ctrl+v");
         rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
         rfb.sendKey(KeyTable.XK_v, "v");
-        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);
-        
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);        
     }
     
     function sendCtrlShiftV(){
@@ -214,16 +263,21 @@ $(document).ready(function(){
         rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", true);
         rfb.sendKey(KeyTable.XK_Insert, "Insert");
         rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);
-        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);
-        
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);       
     }
     
     function sendShiftInsert(){
         console.log("sending shift+insert");
         rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", true);
         rfb.sendKey(KeyTable.XK_Insert, "Insert");
-        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);
-        
+        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);        
+    }
+
+    function sendCtrlX(){
+        console.log("sending ctrl+v");
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
+        rfb.sendKey(KeyTable.XK_x, "x");
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);        
     }
     
     // When text is highlighted on noVNC it calls this method
@@ -252,6 +306,7 @@ $(document).ready(function(){
     }
 
     function pasteClicked(){
+        unlock();
         var str = $("#paste_box").val();
         rfb.clipboardPasteFrom(str);
         sendShiftInsert();
