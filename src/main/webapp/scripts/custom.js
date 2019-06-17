@@ -87,6 +87,7 @@ $(document).ready(function(){
         xKey = 88,
         cKey = 67;
         
+        $("canvas").focus();
         $("canvas").keydown(function(e) {
             if (e.keyCode == ctrlKey) ctrlDown = true;
             if (e.keyCode == cmdKey) cmdDown = true;
@@ -209,7 +210,7 @@ $(document).ready(function(){
     
     $(window).bind("paste", function(e){
         // access the clipboard using the api        
-        e.preventDefault();
+        e.preventDefault ? e.preventDefault() : (e.returnValue = false);
         unlock();
         var str = e.originalEvent.clipboardData.getData('text');
         $("#paste_box").val(str);
