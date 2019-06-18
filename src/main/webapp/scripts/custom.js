@@ -87,7 +87,10 @@ $(document).ready(function(){
         xKey = 88,
         cKey = 67;
         
+        // brings focus to vnc canvas once it's loaded
         $("canvas").focus();
+        
+        // add eventlisteners to detect when ctrl/cmd are held down
         $("canvas").keydown(function(e) {
             if (e.keyCode == ctrlKey) ctrlDown = true;
             if (e.keyCode == cmdKey) cmdDown = true;
@@ -104,22 +107,27 @@ $(document).ready(function(){
         });
         
         // Document Ctrl + C/V
+        // returns are to prevent lag on keypress
+        // Unlock() makes sure the ctrl key isn't held down
         $("canvas").keydown(function(e) {            
             //Paste Combos
-            if (ctrlDown && shiftDown && (e.keyCode == vKey)){
-                lock();
-                combotype = 2;
-                console.log("Document catch Ctrl+Shift+V");
-                unlock();
-                return;
+            if (ctrlDown && (e.keyCode == vKey)){
+                if (!shiftDown){
+                    lock();
+                    combotype = 1;
+                    console.log("Document catch Ctrl+V");
+                    unlock();
+                    return;
+                }
+                else {
+                    lock();
+                    combotype = 2;
+                    console.log("Document catch Ctrl+Shift+V");
+                    unlock();
+                    return;
+                }
             } 
-            else if (ctrlDown && (e.keyCode == vKey)){
-                lock();
-                combotype = 1;
-                console.log("Document catch Ctrl+V");
-                unlock();
-                return;
-            }
+            // Shift + insert
             if (shiftDown && (e.keyCode == insertKey)){
                 lock();
                 combotype = 3;
@@ -150,26 +158,28 @@ $(document).ready(function(){
                 return;
             }
         });
-
+        
         // MAC copy paste using cmd
         // prevent default doesn't seem to work on mac
         // you have to lock unlock to stop vnc interaction
         $("canvas").keydown(function(e) {
-            if (cmdDown && shiftDown && (e.keyCode == vKey)){
-                lock();
-                combotype = 2;
-                console.log("Document catch CMD+Shift+V");
-                unlock();
-                return;
+            if (cmdDown && (e.keyCode == vKey)){
+                if (!shiftDown){
+                    lock();
+                    // combotype used to record which key combo was pressed
+                    combotype = 1;
+                    console.log("Document catch CMD+V");
+                    unlock();
+                    return;
+                }
+                else {
+                    lock();
+                    combotype = 2;
+                    console.log("Document catch CMD+Shift+V");
+                    unlock();
+                    return;
+                }
             } 
-            else if (cmdDown && (e.keyCode == vKey)){
-                lock();
-                combotype = 1;
-                console.log("Document catch CMD+V");
-                $("#paste_box").focus();
-                unlock();
-                return;
-            }
             if (shiftDown && (e.keyCode == insertKey)){
                 lock();
                 combotype = 3;
@@ -177,8 +187,8 @@ $(document).ready(function(){
                 unlock();
                 return;
             }
+
             //Copy Combos
-            // Copy is simpler than paste, just call the copy method.
             if (cmdDown && shiftDown && (e.keyCode == cKey)){
                 console.log("Document catch CMD+Shift+C");
                 lock();
@@ -209,13 +219,19 @@ $(document).ready(function(){
     }
     
     $(window).bind("paste", function(e){
-        // access the clipboard using the api        
+        // lambda expression added for EDGE™ support
         e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+        // vnc needs to be unlocked to paste the text into it
         unlock();
+        // access the clipboard using the api   
         var str = e.originalEvent.clipboardData.getData('text');
         $("#paste_box").val(str);
-        console.log(str);            
+        console.log(str);
+        
+        // copy the client clipboard over to remote machine's clipboard
         rfb.clipboardPasteFrom(str);
+
+        // check which key combination was pressed, then emulate it
         switch (combotype) {
             case 1:
             sendCtrlV();
@@ -249,8 +265,7 @@ $(document).ready(function(){
         rfb.sendKey(KeyTable.XK_Meta_L, "MetaLeft");
     }
     
-    // Simulate Key Combinations
-    
+    // Simulate Key Combinations    
     function sendCtrlV(){
         console.log("sending ctrl+v");
         rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
@@ -273,7 +288,7 @@ $(document).ready(function(){
         rfb.sendKey(KeyTable.XK_Insert, "Insert");
         rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);        
     }
-
+    
     function sendCtrlX(){
         console.log("sending ctrl+v");
         rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
@@ -305,7 +320,7 @@ $(document).ready(function(){
         
         $("canvas").focus();
     }
-
+    
     function pasteClicked(){
         unlock();
         var str = $("#paste_box").val();
@@ -316,6 +331,7 @@ $(document).ready(function(){
     rfb.addEventListener("connect",  onConnected);
     // All this code is for the top bar and fullscreen
     function onConnected(){
+        // Add relevant listeners to activate the bar
         $("canvas").on('mousemove', mousemove);
         $(document.body).on('mousemove', mousemove);
         $("#fullscreen_but").on('click', fullscreenClicked);
@@ -325,6 +341,7 @@ $(document).ready(function(){
         var topBar = $("#top_bar");
         // listen for mouse move so you know when to show the topbar
         function mousemove(e){
+            // Calculate the size of the top bar (including sliding menus)
             var width = $(document.body).width();
             //additions and subtractions from bounds are for padding
             var yBound = $("#top_bar").height() + 10;
@@ -337,6 +354,7 @@ $(document).ready(function(){
                 rightBound = width;
             }
             
+            // if your cursor leaves the top bar, hide it
             if(e.pageY < 10 && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
                 $(topBar).addClass('show');
                 $("#paste_bar").addClass('show');
@@ -357,6 +375,7 @@ $(document).ready(function(){
         $("#paste_show").on('click', pasteShowClicked);
         $("#paste_but").on('click', pasteClicked);
         
+        // show & the copy and paste menus
         function copyShowClicked(){
             if ($("#copy_bar").hasClass('slide')){
                 $("#copy_bar").removeClass('slide');
@@ -382,8 +401,8 @@ $(document).ready(function(){
             $("#copy_box").select();
         }
         
-
         
+        // fullscreen the window and change the text
         function fullscreenClicked(){
             var elem = document.documentElement;
             $("#fullscreen_but").hide();
@@ -398,7 +417,7 @@ $(document).ready(function(){
                 elem.msRequestFullscreen();
             }
         }
-        
+        // exit fullscreen and change the text
         function exit_fullscreenClicked(){
             $("#fullscreen_but").show();
             $("#exit_fullscreen_but").hide();
@@ -412,7 +431,7 @@ $(document).ready(function(){
                 document.msExitFullscreen();
             }
         }
-
+        
     }
-
+    
 });
