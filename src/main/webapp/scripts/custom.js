@@ -82,7 +82,9 @@ $(document).ready(function(){
         ctrlKey = 17,
         shiftKey = 16,
         insertKey = 45,
-        cmdKey = 91,
+        lcmdKey = 91,
+        rcmdKey = 93,
+        firefoxcmdkey = 224,
         vKey = 86,
         xKey = 88,
         cKey = 67;
@@ -93,11 +95,11 @@ $(document).ready(function(){
         // add eventlisteners to detect when ctrl/cmd are held down
         $("canvas").keydown(function(e) {
             if (e.keyCode == ctrlKey) ctrlDown = true;
-            if (e.keyCode == cmdKey) cmdDown = true;
+            if (e.keyCode == lcmdKey || e.keyCode == rcmdKey || e.keyCode == firefoxcmdkey) cmdDown = true;
             if (e.keyCode == shiftKey) shiftDown = true;
         }).keyup(function(e) {
             if (e.keyCode == ctrlKey) ctrlDown = false;
-            if (e.keyCode == cmdKey) cmdDown = false;
+            if (e.keyCode == lcmdKey || e.keyCode == rcmdKey || e.keyCode == firefoxcmdkey) cmdDown = false;
             if (e.keyCode == shiftKey) shiftDown = false;
         });
         
