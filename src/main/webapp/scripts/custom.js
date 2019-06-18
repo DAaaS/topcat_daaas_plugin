@@ -77,75 +77,161 @@ $(document).ready(function(){
         // this means that 1ms is sufficient
         setTimeout(unlock,1);
         var ctrlDown = false,
+        cmdDown = false,
         shiftDown = false,
         ctrlKey = 17,
         shiftKey = 16,
         insertKey = 45,
         cmdKey = 91,
         vKey = 86,
+        xKey = 88,
         cKey = 67;
         
+        // brings focus to vnc canvas once it's loaded
+        $("canvas").focus();
+        
+        // add eventlisteners to detect when ctrl/cmd are held down
         $("canvas").keydown(function(e) {
-            if (e.keyCode == ctrlKey || e.keyCode == cmdKey) ctrlDown = true;
+            if (e.keyCode == ctrlKey) ctrlDown = true;
+            if (e.keyCode == cmdKey) cmdDown = true;
             if (e.keyCode == shiftKey) shiftDown = true;
         }).keyup(function(e) {
-            if (e.keyCode == ctrlKey || e.keyCode == cmdKey) ctrlDown = false;
+            if (e.keyCode == ctrlKey) ctrlDown = false;
+            if (e.keyCode == cmdKey) cmdDown = false;
             if (e.keyCode == shiftKey) shiftDown = false;
         });
         
         $(".no-copy-paste").keydown(function(e) {
             if (ctrlDown && (e.keyCode == vKey || e.keyCode == cKey)) return false;
+            if (cmdDown && (e.keyCode == vKey || e.keyCode == cKey)) return false;
         });
         
         // Document Ctrl + C/V
+        // returns are to prevent lag on keypress
+        // Unlock() makes sure the ctrl key isn't held down
         $("canvas").keydown(function(e) {            
             //Paste Combos
-            if (ctrlDown && shiftDown && (e.keyCode == vKey)){
-                lock();
-                combotype = 2;
-                console.log("Document catch Ctrl+Shift+V");
-                unlock();
+            if (ctrlDown && (e.keyCode == vKey)){
+                if (!shiftDown){
+                    lock();
+                    combotype = 1;
+                    console.log("Document catch Ctrl+V");
+                    unlock();
+                    return;
+                }
+                else {
+                    lock();
+                    combotype = 2;
+                    console.log("Document catch Ctrl+Shift+V");
+                    unlock();
+                    return;
+                }
             } 
-            else if (ctrlDown && (e.keyCode == vKey)){
-                lock();
-                combotype = 1;
-                console.log("Document catch Ctrl+V");
-                unlock();
-            }
+            // Shift + insert
             if (shiftDown && (e.keyCode == insertKey)){
                 lock();
                 combotype = 3;
                 console.log("Document catch Shift+Insert");
                 unlock();
+                return;
             }
             //Copy Combos
             // Copy is simpler than paste, just call the copy method.
             if (ctrlDown && shiftDown && (e.keyCode == cKey)){
                 console.log("Document catch Ctrl+Shift+C");
                 copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
             }
             else if (ctrlDown && (e.keyCode == cKey)) {
                 console.log("Document catch Ctrl+C");
                 copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
             }
             
             //Cut
             if (ctrlDown && (e.keyCode == xKey)){
                 console.log("Document catch Ctrl+X");
                 copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
+            }
+        });
+        
+        // MAC copy paste using cmd
+        // prevent default doesn't seem to work on mac
+        // you have to lock unlock to stop vnc interaction
+        $("canvas").keydown(function(e) {
+            if (cmdDown && (e.keyCode == vKey)){
+                if (!shiftDown){
+                    lock();
+                    // combotype used to record which key combo was pressed
+                    combotype = 1;
+                    console.log("Document catch CMD+V");
+                    unlock();
+                    return;
+                }
+                else {
+                    lock();
+                    combotype = 2;
+                    console.log("Document catch CMD+Shift+V");
+                    unlock();
+                    return;
+                }
+            } 
+            if (shiftDown && (e.keyCode == insertKey)){
+                lock();
+                combotype = 3;
+                console.log("Document catch Shift+Insert");
+                unlock();
+                return;
             }
 
-            $("canvas").focus();
+            //Copy Combos
+            if (cmdDown && shiftDown && (e.keyCode == cKey)){
+                console.log("Document catch CMD+Shift+C");
+                lock();
+                copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
+            }
+            else if (cmdDown && (e.keyCode == cKey)) {
+                console.log("Document catch CMD+C");
+                lock();
+                copyStringToClipboard(remoteHighlight);
+                unlock();
+                return;
+            }
+            
+            //Cut
+            // because cmd X isn't a command on remote vnc we need to emulate cut
+            // it's emulated by doing a normal copy, then sending a cut key combo
+            if (cmdDown && (e.keyCode == xKey)){
+                console.log("Document catch Ctrl+X");
+                lock();
+                copyStringToClipboard(remoteHighlight);
+                unlock();
+                sendCtrlX();
+                return;
+            }
         });
     }
     
     $(window).bind("paste", function(e){
-        // access the clipboard using the api
+        // lambda expression added for EDGE™ support
+        e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+        // vnc needs to be unlocked to paste the text into it
         unlock();
+        // access the clipboard using the api   
         var str = e.originalEvent.clipboardData.getData('text');
         $("#paste_box").val(str);
-        console.log(str);            
+        console.log(str);
+        
+        // copy the client clipboard over to remote machine's clipboard
         rfb.clipboardPasteFrom(str);
+
+        // check which key combination was pressed, then emulate it
         switch (combotype) {
             case 1:
             sendCtrlV();
@@ -163,7 +249,6 @@ $(document).ready(function(){
             break;
         }
         $("canvas").focus();
-        e.preventDefault();
     });
     
     function lock(){
@@ -176,16 +261,16 @@ $(document).ready(function(){
             console.log("unlock");
             rfb.viewOnly = 0;            
         }
+        // MAC fix, prevents sticky CMD button
+        rfb.sendKey(KeyTable.XK_Meta_L, "MetaLeft");
     }
     
-    // Simulate Key Combinations
-    
+    // Simulate Key Combinations    
     function sendCtrlV(){
         console.log("sending ctrl+v");
         rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
         rfb.sendKey(KeyTable.XK_v, "v");
-        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);
-        
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);        
     }
     
     function sendCtrlShiftV(){
@@ -194,16 +279,21 @@ $(document).ready(function(){
         rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", true);
         rfb.sendKey(KeyTable.XK_Insert, "Insert");
         rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);
-        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);
-        
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);       
     }
     
     function sendShiftInsert(){
         console.log("sending shift+insert");
         rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", true);
         rfb.sendKey(KeyTable.XK_Insert, "Insert");
-        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);
-        
+        rfb.sendKey(KeyTable.XK_Shift_L, "ShiftLeft", false);        
+    }
+    
+    function sendCtrlX(){
+        console.log("sending ctrl+v");
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
+        rfb.sendKey(KeyTable.XK_x, "x");
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);        
     }
     
     // When text is highlighted on noVNC it calls this method
@@ -228,11 +318,20 @@ $(document).ready(function(){
         // Remove temporary element
         document.body.removeChild(el);
         
+        $("canvas").focus();
+    }
+    
+    function pasteClicked(){
+        unlock();
+        var str = $("#paste_box").val();
+        rfb.clipboardPasteFrom(str);
+        sendShiftInsert();
     }
     
     rfb.addEventListener("connect",  onConnected);
     // All this code is for the top bar and fullscreen
     function onConnected(){
+        // Add relevant listeners to activate the bar
         $("canvas").on('mousemove', mousemove);
         $(document.body).on('mousemove', mousemove);
         $("#fullscreen_but").on('click', fullscreenClicked);
@@ -242,6 +341,7 @@ $(document).ready(function(){
         var topBar = $("#top_bar");
         // listen for mouse move so you know when to show the topbar
         function mousemove(e){
+            // Calculate the size of the top bar (including sliding menus)
             var width = $(document.body).width();
             //additions and subtractions from bounds are for padding
             var yBound = $("#top_bar").height() + 10;
@@ -254,6 +354,7 @@ $(document).ready(function(){
                 rightBound = width;
             }
             
+            // if your cursor leaves the top bar, hide it
             if(e.pageY < 10 && e.pageX >= width / 3 && e.pageX < width - (width / 3)){
                 $(topBar).addClass('show');
                 $("#paste_bar").addClass('show');
@@ -274,6 +375,7 @@ $(document).ready(function(){
         $("#paste_show").on('click', pasteShowClicked);
         $("#paste_but").on('click', pasteClicked);
         
+        // show & the copy and paste menus
         function copyShowClicked(){
             if ($("#copy_bar").hasClass('slide')){
                 $("#copy_bar").removeClass('slide');
@@ -299,12 +401,8 @@ $(document).ready(function(){
             $("#copy_box").select();
         }
         
-        function pasteClicked(){
-            var str = $("#paste_box").val();
-            rfb.clipboardPasteFrom(str);
-            sendShiftInsert();
-        }
         
+        // fullscreen the window and change the text
         function fullscreenClicked(){
             var elem = document.documentElement;
             $("#fullscreen_but").hide();
@@ -319,7 +417,7 @@ $(document).ready(function(){
                 elem.msRequestFullscreen();
             }
         }
-        
+        // exit fullscreen and change the text
         function exit_fullscreenClicked(){
             $("#fullscreen_but").show();
             $("#exit_fullscreen_but").hide();
@@ -333,8 +431,7 @@ $(document).ready(function(){
                 document.msExitFullscreen();
             }
         }
-
+        
     }
-
+    
 });
-
