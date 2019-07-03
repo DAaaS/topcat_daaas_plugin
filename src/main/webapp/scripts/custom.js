@@ -236,15 +236,15 @@ $(document).ready(function(){
         // check which key combination was pressed, then emulate it
         switch (combotype) {
             case 1:
-            sendCtrlV();
+            setTimeout(sendCtrlV,5);
             break;
             
             case 2:
-            sendCtrlShiftV();
+            setTimeout(sendCtrlShiftV,5);
             break;
             
             case 3:
-            sendShiftInsert();
+            setTimeout(sendShiftInsert,5);
             break;
             
             default:
