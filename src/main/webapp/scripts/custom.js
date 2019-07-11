@@ -118,14 +118,14 @@ $(document).ready(function(){
                     lock();
                     combotype = 1;
                     console.log("Document catch Ctrl+V");
-                    unlock();
+                    setTimeout(unlock,4);
                     return;
                 }
                 else {
                     lock();
                     combotype = 2;
                     console.log("Document catch Ctrl+Shift+V");
-                    unlock();
+                    setTimeout(unlock,4);
                     return;
                 }
             } 
@@ -327,7 +327,7 @@ $(document).ready(function(){
         unlock();
         var str = $("#paste_box").val();
         rfb.clipboardPasteFrom(str);
-        sendShiftInsert();
+        setTimeout(sendShiftInsert,5);
     }
     
     rfb.addEventListener("connect",  onConnected);
