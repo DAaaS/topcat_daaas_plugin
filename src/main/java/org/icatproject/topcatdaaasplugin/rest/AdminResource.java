@@ -116,6 +116,7 @@ public class AdminResource {
 
             IcatClient icatClient = new IcatClient(icatUrl, sessionId);
             String userName = icatClient.getUserName();
+            Properties properties = new Properties();
 
             MachineUser machineUser = new MachineUser();
             machineUser.setUserName(userName);
@@ -126,8 +127,7 @@ public class AdminResource {
 
             com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
             com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
-            String fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
-
+            String fedId = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", "")).getFedId();
             SshClient sshClient = new SshClient(machine.getHost());
             sshClient.exec("add_secondary_user " + fedId);
             sshClient.exec("add_websockify_token " + machineUser.getWebsockifyToken());
@@ -165,6 +165,7 @@ public class AdminResource {
 
             IcatClient icatClient = new IcatClient(icatUrl, sessionId);
             String userName = icatClient.getUserName();
+            Properties properties = new Properties();
 
             EntityList<MachineUser> newMachineUsers = new EntityList<>();
 
@@ -174,7 +175,7 @@ public class AdminResource {
                 } else {
                     com.stfc.useroffice.webservice.UserOfficeWebService_Service service = new com.stfc.useroffice.webservice.UserOfficeWebService_Service();
                     com.stfc.useroffice.webservice.UserOfficeWebService port = service.getUserOfficeWebServicePort();
-                    String fedId = port.getFedIdFromUserId(userName.replace("uows/", ""));
+                    String fedId = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", "")).getFedId();
 
                     SshClient sshClient = new SshClient(machine.getHost());
                     sshClient.exec("remove_secondary_user " + fedId);
