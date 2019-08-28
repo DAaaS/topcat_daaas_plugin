@@ -60,6 +60,7 @@ public class LastActivity {
 
                     if (difference > deleteTime) {
                         logger.info("Inactivity on machine {} is greater than deleteTime. Deleting", machine.getId());
+                        database.remove(machine);
                         try {
                             vmmClient.delete_machine(machine.getId());
                         } catch (UnexpectedException e) {
@@ -69,7 +70,6 @@ public class LastActivity {
                         }
                         Map<String, Object> params = new HashMap<>();
                         params.put("id", machine.getId());
-                        database.remove(machine);
                     }
                 } catch (Exception e) {
                     logger.error("Something went wrong checking last activity: {}", e.getMessage());
