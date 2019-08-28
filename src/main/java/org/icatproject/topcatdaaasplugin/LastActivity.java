@@ -68,8 +68,6 @@ public class LastActivity {
                         } catch (Exception e) {
                             throw new UnexpectedException(e.getMessage());
                         }
-                        Map<String, Object> params = new HashMap<>();
-                        params.put("id", machine.getId());
                     }
                 } catch (Exception e) {
                     logger.error("Something went wrong checking last activity: {}", e.getMessage());
