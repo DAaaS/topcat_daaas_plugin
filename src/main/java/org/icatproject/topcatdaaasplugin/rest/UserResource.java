@@ -118,13 +118,15 @@ public class UserResource {
                 PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
                 if (personDetails == null) {
                     throw new DaaasException("It looks like you don't have a user office account." +
-                            "Please email us at support@analysis.stfc.ac.uk if you need help creating one and linking it to your federal id." +
+                            "Please email us at support@analysis.stfc.ac.uk if you need help creating one." +
                             "If you think this is a mistake, email us anyway.");
                 }
-                fedId = personDetails.getFedId();
 
-                if (fedId == null || fedId.equals("") || userName.replace("uows/", "").equals(fedId)) {
-                    throw new DaaasException("Your ISIS User Office account is not linked to your Federal ID. Please contact support@analysis.stfc.ac.uk and ask for your accounts to be linked.");
+                String group = vmmClient.get_machine_type(machineTypeId).get_group();
+                if ("octopus".equals(group)) {
+                    fedId = personDetails.getFedId();
+                } else {
+                    fedId = personDetails.getEmail();
                 }
             } else {
                 String[] split = userName.split("/");
@@ -451,7 +453,7 @@ public class UserResource {
                     if(Boolean.parseBoolean(uoc)) {
                         logger.debug("resolving federal ID from User Office ID");
                         PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), userName.replace("uows/", ""));
-                        fedId = personDetails.getFedId();
+                        fedId = personDetails.getEmail();
                     } else {
                         String[] split = userName.split("/");
                         if (split.length == 2) {
@@ -483,7 +485,7 @@ public class UserResource {
 
                 if (isRemoved) {
                     PersonDetailsDTO personDetails = port.getPersonDetailsFromUserNumber(properties.getProperty("uokey"), machineUser.getUserName().replace("uows/", ""));
-                    String fedId = personDetails.getFedId();
+                    String fedId = personDetails.getEmail();
                     sshClient.exec("remove_secondary_user " + fedId);
                     sshClient.exec("remove_websockify_token " + machineUser.getWebsockifyToken());
                 }
