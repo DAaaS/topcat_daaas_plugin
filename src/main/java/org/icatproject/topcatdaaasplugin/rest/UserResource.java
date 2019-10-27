@@ -164,7 +164,7 @@ public class UserResource {
             */
             if ("excitations".equals(group) || "wish".equals(group)) {
                 logger.debug("createMachine: custom excitations " + machineUser.getWebsockifyToken());
-                sshClient.exec("custom excitations " + fedId + " " + sessionId);
+                sshClient.exec("custom excitations " + fedId + " " + userName.replace("uows/", ""));
             }
 
             machine.setScreenshot(Base64.getMimeDecoder().decode(sshClient.exec("get_screenshot")));
