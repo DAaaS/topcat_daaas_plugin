@@ -158,15 +158,6 @@ public class UserResource {
             logger.debug("createMachine: add_websockify_token " + machineUser.getWebsockifyToken());
             sshClient.exec("add_websockify_token " + machineUser.getWebsockifyToken());
 
-            String group = vmmClient.get_machine_type(machineTypeId).get_group();
-            /*
-                This really needs to be abstracted out into a config file.
-            */
-            if ("excitations".equals(group) || "wish".equals(group)) {
-                logger.debug("createMachine: custom excitations " + machineUser.getWebsockifyToken());
-                sshClient.exec("custom excitations " + fedId + " " + userName.replace("uows/", ""));
-            }
-
             machine.setScreenshot(Base64.getMimeDecoder().decode(sshClient.exec("get_screenshot")));
             machine.setCreatedAt(new Date());
             database.persist(machine);
