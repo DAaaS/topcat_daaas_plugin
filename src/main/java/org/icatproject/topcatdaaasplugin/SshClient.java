@@ -28,7 +28,7 @@ public class SshClient {
         String sshUsername = properties.getProperty("sshUsername");
 
         String[] command = new String[]{
-                "/usr/bin/ssh", sshUsername + "@" + host,
+                "/usr/bin/ssh", "-t", sshUsername + "@" + host,
                 "-i", sshPrivateKeyFile,
                 "-o", "StrictHostKeyChecking no",
                 "-o", "UserKnownHostsFile /dev/null",
