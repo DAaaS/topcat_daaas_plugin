@@ -2,16 +2,6 @@ topcatUrl https://domain:8181
 allowedIcatUrls https://domain:8181
 facilityName facility
 
-domain default
-username username
-password password
-project projectid
-
-identityEndpoint https://domain:5000
-computeEndpoint https://domain:8774
-imageEndpoint http://domain:9292
-networkEndpoint http://domain:9696
-
 # ssh details for contextualising the VMs
 sshKeyPairName keypairname
 sshUsername username
@@ -20,24 +10,19 @@ sshPrivateKeyFile /home/user/id_rsa
 # how long to wait for machine to configure before marking them as ERROR
 maxPrepareSeconds 600
 
-# openstack network name and id
-networkName openstack_network_name
-networkId openstack_network_id
-
-# are we using openstack's floating IP feature
-floating_ips false
-
 # how long machines can be inactive for before deleting
 time_to_delete 12000
 
 # Get username via UserOffice
 uoc True
 
-# openstack security group (comma separated)
-security_groups default
-
 # UO information
 uourl https://uo.url/uo?WSDL
 uowebserviceurl http://webservice.url/
 uowebserviceextension UserOfficeWebService
 uokey key
+
+# Virtual Machine Manager
+vmmHost http://127.0.0.1:8080
+vmmUser example_cloud_owner
+vmmPassword owner_password

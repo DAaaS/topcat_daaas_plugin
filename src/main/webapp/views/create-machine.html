@@ -8,18 +8,35 @@
             <div class="form-group">
                 <div class="machine-types" take-up-remaining-height>
 
+                    <div class="row" ng-if="createMachineController.machineTypes.length == 0">
+                        <div class="col-sm-6 col-sm-push-3">
+                            <div class="alert alert-info">
+                                <b>Welcome</b>
+                                <br><br>
+                                It looks like we are having trouble listing analysis environment types.
+                                <br><br>
+                                Please try again in a few minutes. If the problem persists, <a href="mailto:support@analysis.stfc.ac.uk">send an email to the support team</a>.
+                                <br><br>
+                                See the <a href="/#/help"><b>Help</b></a> pages for more information.
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="machine" ng-class="{selected: createMachineController.machineTypeId == machineType.id}" ng-repeat="machineType in createMachineController.machineTypes">
                         <div class="radio">
                             <input type="radio" name="machineType" ng-model="createMachineController.machineTypeId" ng-value="machineType.id" required>
                         </div>
-                        <div class="machinetype" ng-if="machineType.logoMd5">
+                        <div class="machinetype">
                             <img ng-src="{{machineType.logoUrl()}}">
                         </div>
                         <div class="main">
                             <div class="info">
                                 <div class="title">
                                     <span style="vertical-align:middle;">{{machineType.name}}</span>
-                                    <i style="font-size:small;vertical-align:middle;">[{{ machineType.aquilonDomain }} available]</i></div>
+                                    <i style="font-size:small;vertical-align:middle;">
+                                        <div ng-if="machineType.number_available==0">[ <b>No machines are available</b> ]</div>
+                                    </i>
+                                </div>
                                 <div class="description">
                                     {{machineType.description}}
                                 </div>

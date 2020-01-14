@@ -5,7 +5,7 @@
 	<groupId>org.icatproject</groupId>
 	<artifactId>topcat_daaas_plugin</artifactId>
 	<packaging>war</packaging>
-	<version>1.1</version>
+  <version>1.7</version>
 	<name>TopCAT DAaaS Plugin</name>
 	<description>Web frontend for multiple ICATs</description>
 
@@ -61,6 +61,7 @@
 							<packageName>com.stfc.useroffice.webservice</packageName>
 							<vmArgs>
 								<vmArg>-Djavax.xml.accessExternalSchema=all</vmArg>
+								<vmArg>-Djavax.net.ssl.trustStore=${basedir}/uo.jks</vmArg>
 							</vmArgs>
 							<wsdlUrls>
 								<wsdlLocation>https://fitbaweb1.isis.cclrc.ac.uk:8443/UserOfficeWebService/UserOfficeWebService?WSDL</wsdlLocation>
@@ -130,6 +131,13 @@
 			<groupId>org.icatproject</groupId>
 			<artifactId>icat.utils</artifactId>
 			<version>4.15.1</version>
+		</dependency>
+		<!--  Gson: Java to Json conversion -->
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.8.5</version>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 
