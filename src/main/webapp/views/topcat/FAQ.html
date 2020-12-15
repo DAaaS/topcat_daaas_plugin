@@ -1,0 +1,269 @@
+<style>
+    a.anchor {
+        display: block;
+        position: relative;
+        top: -60px;
+        visibility: hidden;
+    }
+
+    .contents {
+        width: 20%;
+        display: inline-block;
+        background: #efefef;
+        padding: 15px;
+        border-radius: 10px;
+        position: fixed;
+        left: 0;
+        top: 70px;
+    }
+
+    .mainpanel {
+        width: 80%;
+        margin-left: 20%;
+        background: #efefef;
+        padding: 15px;
+        padding-left: 30px;
+        padding-right: 30px;
+        border-radius: 10px;
+    }
+
+    h2 {
+        margin-top: 25px;
+        margin-bottom: 0px font-size 20px;
+        font-weight: 600;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 50px;
+    }
+
+    .contents li {
+        text-align: left;
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 3px;
+    }
+
+    @media only screen and (max-width: 1300px) {
+        .contents {
+            width: auto;
+            background-color: #fafafa;
+            position: unset;
+        }
+
+        .mainpanel {
+            margin: auto;
+        }
+
+    }
+</style>
+
+<html>
+
+<body>
+    <div class="mainpanel">
+        <h1>Frequently Asked Questions</h1>
+        <div style="text-align:center;">
+            <div class="contents">
+                <h3>Contents</h3>
+                <ul>
+                    <li><a href="#/FAQ#session_sharing">Session Sharing</a></li>
+                    <li><a href="#/FAQ#ssh">SSH</a></li>
+                    <li><a href="#/FAQ#download_upload_files">Download/Upload Files</a></li>
+                    <li><a href="#/FAQ#trouble_connecting">Trouble Connecting?</a></li>
+                    <li><a href="#/FAQ#delete_files">I'm having trouble deleting files.</a></li>
+                    <li><a href="#/FAQ#session_length">How long do the sessions last for?</a></li>
+                    <li><a href="#/FAQ#no_machines_available">What do I do if no machines are available?</a></li>
+                    <li><a href="#/FAQ#resize">How do I resize the session?</a></li>
+                    <li><a href="#/FAQ#share">How do I share my analysis environment?</a></li>
+                    <li><a href="#/FAQ#rdp_credentials">Which credentials do I use to log in via RDP?</a></li>
+                    <li><a href="#/FAQ#password_reset">How do I reset my Password?</a></li>
+                    <li><a href="#/FAQ#register_user_office_account">How do I get a user office account?</a></li>
+                    <li><a href="#/FAQ#copy_paste">How do I copy & paste?</a></li>
+                    <li><a href="#/FAQ#folder_structure">How and where is my data stored?</a></li>
+                </ul>
+            </div>
+        </div>
+        <h2><a name="session_sharing" class="anchor"></a>Session Sharing</h2>
+        <p>
+            This service gives you the ability to share you session with other users. They will connect directly into
+            the same
+            remote desktop session you are connected to and will have joint control of the mouse and keyboard.
+
+            <b>WARNING</b>: Any user that you share your machine with will have complete access and permissions to all
+            of your
+            files.
+            You should supervise any shared access and remove users once sharing is no longer required.
+        </p>
+        <h2><a name="ssh" class="anchor"></a>SSH</h2>
+        <p>
+            To SSH into a machine you now need to use your user office credentials </br>
+            Via terminal you can use
+            <code>ssh -l "forname.surname@email.com" host-140-256-215-209.nubes.stfc.ac.uk</code> to avoid needing to
+            escape symbols in your email.
+        </p>
+        <h2><a name="download_upload_files" class="anchor"></a>Download/Upload Files</h2>
+        <p>
+            The easiest way to download and upload data is by using the new file browser located at <a
+                href="https://data.analysis.stfc.ac.uk/">data.analysis.stfc.ac.uk</a><br>
+            It uses the same credentials as this page (your user office email and password). Once logged in you can
+            access
+            your processed data by clicking "Data" on the left menu and access raw data by clicking
+            "Experiments".<br><br>
+            You can download and upload your files via SFTP. The easiest way to do this is using an SFTP client like
+            FileZilla<br>
+            When connecting using an SFTP client:
+        <ul>
+            <li>The host name is the host listed next to the machine on your analysis dashboard.</li>
+            <li>Use the full host name (e.g. host-130-246-213-71.nubes.stfc.ac.uk) or else it will not work</li>
+            <li>Username and Password are your user office email address and password (the same as when you RDP into
+                the
+                machine)</li>
+            <li>The Port is 22 <b>WARNING</b>: If you do not specify the port, it will not work</li>
+        </ul>
+        </p>
+        <h2><a name="trouble_connecting" class="anchor"></a>Trouble Connecting?</h2>
+        <p>
+            If you're having trouble connecting, it may be because the network you're using to connect doesn't allow
+            outbound
+            connections on WebSockify or RDP Ports.
+
+            If you're connecting using a proxy, you may have difficulties if it doesn't support websockets.
+
+            You may need to contact your local network administrator or institution, to request they allow outbound
+            traffic on
+            port 3389 (RDP)
+        </p>
+        <h2><a name="delete_files" class="anchor"></a>I'm having trouble deleting files.</h2>
+        <p>
+            If you're having trouble deleting files, you can hold shift then press delete,
+            or rightclick > permanently delete to remove the files.
+            WARNING: Files deleted this way will not be recoverable.
+        </p>
+
+        <h2><a name="session_length" class="anchor"></a></a>How long do the sessions last for?</h2>
+        <p>
+            The sessions currently expire after 72h of inactivity. If you need longer, please contact
+            <a href="mailto:support@analysis.stfc.ac.uk">IDAaaS support</a>.
+        </p>
+
+        <h2><a name="no_machines_available" class="anchor"></a>What do I do if no machines are available?</h2>
+        <p>
+            Hopefully there should always be machines available, but if there aren't any,
+            please wait 10-15 minutes and try again. If all the machines have been taken,
+            it takes a few minutes to create some more.
+            If you're still seeing that there are no machine available, please contact
+            <a href="mailto:support@analysis.stfc.ac.uk">IDAaaS support</a>.
+        </p>
+
+        <h2><a name="resize" class="anchor"></a>How do I resize the session?</h2>
+        <p>
+            If you're using the browser, it will automatically resize to fit the window.
+            If you're using RDP, you need to click Applications > System > Resolution.
+            In the display window that opens you can adjust the resolution of the session.
+        </p>
+        <img src="/images/resize.png" alt="resize.png">
+
+        <h2><a name="share" class="anchor"></a>How do I share my analysis environment?</h2>
+        <p>
+            Next to your analysis environment's "Launch" button is the "Share" button.
+            Click share, search for the user you want to share with, click their name,
+            then click "Save Changes".
+        </p>
+        <img src="/images/share.png" alt="share.png">
+
+        <h2><a name="rdp_credentials" class="anchor"></a>Which credentials do I use to log in via RDP?</h2>
+        <p>
+            For logging in via RDP, you need to use your user office email and password.
+            See <a href="#/FAQ#password_reset">here</a>
+            for what you should do if you've forgotten it.
+        </p>
+
+        <h2><a name="password_reset" class="anchor"></a>How do I reset my Password?</h2>
+        <p>
+            To reset your password please go to <a href="https://users.facilities.rl.ac.uk/">User Office</a>.
+        </p>
+
+        <h2><a name="register_user_office_account" class="anchor"></a>How do I get a user office account?</h2>
+        <p>
+            You can register for a user office account
+            <a href="https://users.facilities.rl.ac.uk/">here</a>.
+        </p>
+
+        <h2><a name="copy_paste" class="anchor"></a>How do I copy & paste?</h2>
+        <p>
+            Currently copy/paste to and from the analysis environments only works when using the browser
+            (There is work planned to implement copy/paste on RDP too).</br></br>
+            You can copy and paste using the shortcuts you're used to on your computer,
+            CTRL + C, CTRL + V, CTRL + SHIFT + V, SHIFT + INS all work on Chrome and Safari.</br></br>
+            Firefox doesn't allow SHIFT + INS, so if you want to paste into the terminal on your analysis environment,
+            you will need to use the top bar.</br>
+        <h3>Top Bar</h3>
+        If you move your cursor towards the middle of the top of your window, a bar will drop down.</br>
+        <img src="/images/topbar.png"></br></br>
+        Button 1 opens the copy menu, Button 2 toggles between fullscreen and windowed, and Button 3 opens the paste
+        menu</br></br>
+        <img src="/images/copypastemenus.png"></br></br>
+        Any text that you highlight in your analysis environment will be added to the copy bar so that you can copy
+        it.</br></br>
+        <img src="/images/copymenu.png"></br></br>
+        To use the paste menu, click where you want the text to go in your analysis environment, then paste the your
+        text into the paste menu, then press the paste button.</br></br>
+        <img src="/images/pastemenu.png">
+        </p>
+
+        <h2><a name="folder_structure" class="folder_structure"></a>How and where is my data stored?</h2>
+        <p>
+        <h3>The ISIS Archive</h3>
+        (same as \\isis.cclrc.ac.uk\inst$\) Contains all historic experiment data and is mounted read-only, so nobody
+        will be
+        able to write anything here. There are
+        shortcuts on the desktop and in the applications menu,
+        and you can go to /archive/.
+
+        <h3>Ceph</h3>This holds all the home directories, RB directories, and auxiliary directories.
+        <ul>
+            <li><b>Home directories</b> are your own personal space that other users don't have access to. They can be
+                found at
+                /home/</li><br>
+            <li><b>RB directories</b> are automatically created for every experiment/investigation with an RB, they are
+                divided
+                by instrument and
+                can be
+                found in /instrument/INSTRUMENT-NAME/RBNumber/.
+                They can also be seen on a per cycle basis in /instrument/INSTRUMENT-NAME/CYCLE20###/. Instrument
+                scientists
+                have read-write access to all the RB directories for their
+                instruments. Regular users will have access to the RB directory corresponding to their experiment
+                provided they
+                are listed on the proposal. We can add people to
+                experiments later to give them permission to access the directories, just send us an
+                <a href="mailto:support@analysis.stfc.ac.uk">email</a> with the name and
+                email address of the user. There are shortcuts to these RB directories on the
+                desktop and in the applications menu. <b><i>Any files which
+                        are related to the experiment should be in here, so you can work on them
+                        together.</i></b>
+            </li><br>
+            <li><b>Auxiliary directories,</b> are located here /mnt/auxiliary/ceph/&lt;instrument group&gt; Instrument
+                Scientists
+                have read write access to this folder, regular users have read only access. The purpose of this
+                directory is to
+                give Instrument scientists a place to store any common
+                files they would like to distribute to the users.
+            </li>
+        </ul>
+
+        <h3>Babylon</h3> Babylon is a temporary network storage space run by ISIS located at /babylon/
+
+        <h3>Persistence</h3>
+        Anything saved on Ceph (home dirs, RB dirs, auxiliary dirs) is safe and won't be lost if you delete your
+        session.
+        Anything stored outside these directories, for example in /tmp/ or /opt/ will only exist on that session and
+        cannot be
+        recovered if the session is deleted.
+        </p>
+    </div>
+</body>
+
+</html>
